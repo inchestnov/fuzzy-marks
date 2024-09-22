@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Bookmarks FuzzyFinder",
+  "version": "0.0.1",
+  "description": "Fuzzy finder for bookmarks",
+  "permissions": [
+    "bookmarks",
+    "tabs"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "commands": {
+    "open_bookmarks_navigator": {
+      "suggested_key": {
+        "default": "Ctrl+E"
+      },
+      "description": "Open bookmark navigator"
+    }
+  }
+}
