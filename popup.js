@@ -66,16 +66,31 @@ document.addEventListener('DOMContentLoaded', () => {
     // Highlight the matching query within the bookmark title
     function highlightText(title, query) {
         if (!query) return title; // If there's no query, return the title as is
-        const queryIndex = title.toLowerCase().indexOf(query.toLowerCase());
-        if (queryIndex === -1) return title; // If query is not found, return the title
 
-        // Split the title into parts: before, matching, and after the query
-        const beforeMatch = title.substring(0, queryIndex);
-        const match = title.substring(queryIndex, queryIndex + query.length);
-        const afterMatch = title.substring(queryIndex + query.length);
+        const strLower = title.toLowerCase();
+        const queryLower = query.toLowerCase();
 
-        // Wrap the matching part with a span for highlighting
-        return `${beforeMatch}<span style="background-color: yellow;">${match}</span>${afterMatch}`;
+        let strIndex = 0;
+        let queryIndex = 0;
+
+        let result = ""
+        while (strIndex < strLower.length && queryIndex < queryLower.length) {
+            if (strLower[strIndex] === queryLower[queryIndex]) {
+                result += `<span style="background-color: yellow;">${title[strIndex]}</span>`
+                queryIndex++;
+            } else {
+                result += title[strIndex]
+            }
+            strIndex++;
+        }
+
+        while (strIndex < strLower.length) {
+            result += title[strIndex];
+            strIndex++;
+        }
+
+        // If we've matched all characters of the query, it's a fuzzy match
+        return result
     }
 
     // Highlight the currently selected bookmark
