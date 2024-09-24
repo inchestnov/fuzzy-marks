@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Create and add the favicon image
             const favicon = document.createElement('img');
-            favicon.src = `https://www.google.com/s2/favicons?domain=${new URL(bookmark.url).hostname}`;
+            favicon.src = faviconURL(bookmark.url);
             favicon.style.width = '16px';
             favicon.style.height = '16px';
             favicon.style.marginRight = '10px';
@@ -55,12 +55,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Highlight the matching part of the title
             const title = document.createElement('span');
-            const highlightedTitle = highlightText(bookmark.title, query);
-            title.innerHTML = highlightedTitle;
+            title.innerHTML = highlightText(bookmark.title, query);
             li.appendChild(title);
 
             bookmarkList.appendChild(li);
         });
+    }
+
+    function faviconURL(u) {
+        const url = new URL(chrome.runtime.getURL("/_favicon/"));
+        url.searchParams.set("pageUrl", u);
+        url.searchParams.set("size", "32");
+        return url.toString();
     }
 
     // Highlight the matching query within the bookmark title

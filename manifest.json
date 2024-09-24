@@ -5,7 +5,8 @@
   "description": "Fuzzy finder for bookmarks",
   "permissions": [
     "bookmarks",
-    "tabs"
+    "tabs",
+    "favicon"
   ],
   "background": {
     "service_worker": "background.js"
