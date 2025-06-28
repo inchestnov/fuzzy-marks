@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Bookmarks Preview</title>
+    <style>
+        body {
+            font-family: "Segoe UI", "Roboto", "Arial", sans-serif;
+            font-size: 13px;
+            width: 300px;
+            height: 400px;
+            margin: 0;
+            padding: 8px;
+            background-color: #ffffff;
+            color: #202124;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 6px 8px;
+            margin-bottom: 8px;
+            font-size: 13px;
+            border: 1px solid #dcdcdc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            max-height: 330px;
+            overflow-y: auto;
+        }
+
+        li {
+            display: flex;
+            align-items: center;
+            padding: 6px 8px;
+            cursor: pointer;
+            user-select: none;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        li:hover {
+            background-color: #f1f3f4;
+        }
+
+        li.selected {
+            background-color: #d2e3fc;
+        }
+
+        li img {
+            width: 16px;
+            height: 16px;
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+
+        li span {
+            flex-grow: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .highlight {
+            font-weight: bold;
+            background-color: yellow;
+            padding: 0 1px;
+        }
+    </style>
+</head>
+<body>
+
+<input type="text" placeholder="Search bookmarks..." value="dev" />
+
+<ul id="bookmarkList">
+    <li class="selected">
+        <img src="https://www.google.com/s2/favicons?domain=developer.mozilla.org">
+        <span><span class="highlight">Dev</span>eloper Docs – MDN</span>
+    </li>
+    <li>
+        <img src="https://www.google.com/s2/favicons?domain=github.com">
+        <span><span class="highlight">Dev</span> Tools Repo – GitHub</span>
+    </li>
+    <li>
+        <img src="https://www.google.com/s2/favicons?domain=stackexchange.com">
+        <span>Stack Overflow – Best <span class="highlight">Dev</span> Answers</span>
+    </li>
+    <li>
+        <img src="https://www.google.com/s2/favicons?domain=chrome.google.com">
+        <span>Chrome <span class="highlight">Dev</span>Tools Extension</span>
+    </li>
+</ul>
+
+</body>
+</html>
+
