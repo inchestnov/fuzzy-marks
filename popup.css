@@ -71,11 +71,8 @@ li span {
 }
 
 .highlight {
-  font-weight: 600;
   background-color: #fbbc04;
   color: black;
-  padding: 0 2px;
-  border-radius: 2px;
 }
 
 @media (prefers-color-scheme: dark) {

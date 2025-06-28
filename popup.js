@@ -40,8 +40,34 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function highlight(text, query) {
     if (!query) return text;
-    const regex = new RegExp(`(${query})`, "gi");
-    return text.replace(regex, `<span class="highlight">$1</span>`);
+  
+    const lowerText = text.toLowerCase();
+    const lowerQuery = query.toLowerCase();
+  
+    const index = lowerText.indexOf(lowerQuery);
+    if (index !== -1) {
+      return (
+        text.slice(0, index) +
+        `<span class="highlight">${text.slice(index, index + query.length)}</span>` +
+        text.slice(index + query.length)
+      );
+    }
+  
+    let result = '';
+    let qi = 0;
+  
+    for (let i = 0; i < text.length; i++) {
+      if (qi < query.length && text[i].toLowerCase() === query[qi].toLowerCase()) {
+        result += `<span class="highlight">${text[i]}</span>`;
+        qi++;
+      } else {
+        result += text[i];
+      }
+    }
+  
+    if (qi < query.length) return text;
+  
+    return result;
   }
 
   function getFavicon(url) {

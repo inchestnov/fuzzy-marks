@@ -1,6 +1,10 @@
 # 🔖 FuzzyMarks — Quickly search and open your bookmarks
 
-A Chrome extension that lets you instantly search and open your bookmarks.
+Chrome extension that lets you instantly search and open your bookmarks.
+
+<p align="center" >
+  <img src="screens/demo.png" alt="Searching" width="512">
+</p>
 
 ## 🚀 Features
 
@@ -13,7 +17,7 @@ A Chrome extension that lets you instantly search and open your bookmarks.
 ## 🛠️ Installation
 
 ### Using Chrome WebStore
-TODO cooming soon ...
+Coming soon ...
 
 ### From source
 1. Clone repository:
