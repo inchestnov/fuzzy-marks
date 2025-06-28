@@ -1,8 +1,11 @@
 {
   "manifest_version": 3,
-  "name": "Bookmarks FuzzyFinder",
-  "version": "0.0.1",
-  "description": "Fuzzy finder for bookmarks",
+  "name": "FuzzyMarks",
+  "description": "Quickly search and open your bookmarks with FuzzyMarks",
+  "version": "1.0",
+  "action": {
+    "default_popup": "popup.html"
+  },
   "permissions": [
     "bookmarks",
     "tabs",
@@ -11,15 +14,12 @@
   "background": {
     "service_worker": "background.js"
   },
-  "action": {
-    "default_popup": "popup.html"
-  },
   "commands": {
-    "open_bookmarks_navigator": {
+    "open_popup": {
       "suggested_key": {
         "default": "Ctrl+E"
       },
-      "description": "Open bookmark navigator"
+      "description": "Open popup for search bookmarks"
     }
   }
 }

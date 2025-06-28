@@ -5,8 +5,8 @@ body {
   height: 400px;
   margin: 0;
   padding: 8px;
-  background-color: Canvas;       /* системный цвет фона окна */
-  color: CanvasText;              /* системный цвет текста */
+  background-color: Canvas;       
+  color: CanvasText;              
 }
 
 input[type="text"] {
@@ -14,16 +14,16 @@ input[type="text"] {
   padding: 6px 8px;
   margin-bottom: 8px;
   font-size: 13px;
-  border: 1px solid ButtonBorder;  /* цвет рамки системный */
+  border: 1px solid ButtonBorder;  
   border-radius: 4px;
   box-sizing: border-box;
   outline: none;
-  background-color: Field;          /* цвет фона поля ввода */
-  color: FieldText;                 /* цвет текста в поле */
+  background-color: Field;          
+  color: FieldText;                 
 }
 
 input[type="text"]:focus {
-  border-color: Highlight;          /* цвет рамки при фокусе */
+  border-color: Highlight;
   box-shadow: 0 0 3px Highlight;
 }
 
@@ -47,8 +47,8 @@ li {
 }
 
 li:hover {
-  background-color: Highlight;       /* системный цвет подсветки */
-  color: HighlightText;              /* системный цвет текста при подсветке */
+  background-color: Highlight;       
+  color: HighlightText;              
 }
 
 li.selected {
@@ -72,13 +72,12 @@ li span {
 
 .highlight {
   font-weight: 600;
-  background-color: #fbbc04;  /* жёлтый акцент Google */
+  background-color: #fbbc04;
   color: black;
   padding: 0 2px;
   border-radius: 2px;
 }
 
-/* Поддержка тёмной темы */
 @media (prefers-color-scheme: dark) {
   body {
     background-color: #202124;
