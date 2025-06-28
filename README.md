@@ -1,24 +1,26 @@
-# Bookmarks Navigator - Shortcut to chrome bookmarks
+# 🔖 FuzzyMarks — Quickly search and open your bookmarks
 
-`FIXME: Add description and screenshots (or short video) ...`
+A Chrome extension that lets you instantly search and open your bookmarks.
 
-# Installation
+## 🚀 Features
 
-## From chrome extensions
+- 🔍 Lightning-fast fuzzy search on bookmark titles
+- 🖱️ Keyboard navigation (↑ / ↓ + Enter)
+- 📎 Open bookmarks in the current or a new tab (with Ctrl/⌘)
+- 🎨 Matches Chrome's light/dark theme automatically
+- ✅ Clean, modern, and minimal UI
 
-`FIXME: Load extension into store and decribe ...`
+## 🛠️ Installation
 
-## From source using developer mode
+### Using Chrome WebStore
+TODO cooming soon ...
 
-Firstly clone source from git:
+### From source
+1. Clone repository:
 ```shell
-$ git clone https://github.com/inchestnov/bookmarks-navigator 
+git clone https://github.com/inchestnov/fuzzy-marks
 ```
+2. Open browser and go to [chrome://extensions/](chrome://extensions/)
+3. Enable developer mode
+4. Click «Load unpacked» and select directory
 
-Then
-* open browser
-* go to [chrome://extensions/](chrome://extensions/)
-* enable developer mode
-* load unpacked, select directory cloned earlier
-
-Now extension is enabled in your browser.
