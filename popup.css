@@ -5,8 +5,8 @@ body {
   height: 400px;
   margin: 0;
   padding: 8px;
-  background-color: #ffffff;
-  color: #202124;
+  background-color: Canvas;       /* системный цвет фона окна */
+  color: CanvasText;              /* системный цвет текста */
 }
 
 input[type="text"] {
@@ -14,10 +14,17 @@ input[type="text"] {
   padding: 6px 8px;
   margin-bottom: 8px;
   font-size: 13px;
-  border: 1px solid #dcdcdc;
+  border: 1px solid ButtonBorder;  /* цвет рамки системный */
   border-radius: 4px;
   box-sizing: border-box;
   outline: none;
+  background-color: Field;          /* цвет фона поля ввода */
+  color: FieldText;                 /* цвет текста в поле */
+}
+
+input[type="text"]:focus {
+  border-color: Highlight;          /* цвет рамки при фокусе */
+  box-shadow: 0 0 3px Highlight;
 }
 
 ul {
@@ -35,15 +42,18 @@ li {
   cursor: pointer;
   user-select: none;
   border-radius: 4px;
-  transition: background-color 0.2s;
+  transition: background-color 0.15s;
+  color: CanvasText;
 }
 
 li:hover {
-  background-color: #f1f3f4;
+  background-color: Highlight;       /* системный цвет подсветки */
+  color: HighlightText;              /* системный цвет текста при подсветке */
 }
 
 li.selected {
-  background-color: #d2e3fc;
+  background-color: Highlight;
+  color: HighlightText;
 }
 
 li img {
@@ -61,8 +71,48 @@ li span {
 }
 
 .highlight {
-  font-weight: bold;
-  background-color: yellow;
-  padding: 0 1px;
+  font-weight: 600;
+  background-color: #fbbc04;  /* жёлтый акцент Google */
+  color: black;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+/* Поддержка тёмной темы */
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #202124;
+    color: #e8eaed;
+  }
+
+  input[type="text"] {
+    background-color: #303134;
+    color: #e8eaed;
+    border: 1px solid #5f6368;
+  }
+
+  input[type="text"]:focus {
+    border-color: #8ab4f8;
+    box-shadow: 0 0 3px #8ab4f8;
+  }
+
+  li {
+    color: #e8eaed;
+  }
+
+  li:hover {
+    background-color: #3c4043;
+    color: #e8eaed;
+  }
+
+  li.selected {
+    background-color: #5f6368;
+    color: #e8eaed;
+  }
+
+  .highlight {
+    background-color: #fbbc04;
+    color: black;
+  }
 }
 
