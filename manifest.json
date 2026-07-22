@@ -23,7 +23,8 @@
   "permissions": [
     "bookmarks",
     "storage",
-    "favicon"
+    "favicon",
+    "history"
   ],
   "commands": {
     "_execute_action": {

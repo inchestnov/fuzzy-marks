@@ -1,1 +1,1 @@
-import './assets/index.ts-BZOaHCBn.js';
+import './assets/index.ts-B63IsHKA.js';
