@@ -110,9 +110,10 @@ the intended entry point.
    open in a tab, Scauta focuses that tab instead of opening a duplicate.
 5. Press `Esc` at any point to close the popup without doing anything.
 
-The last query you typed is remembered and restored the next time you open
-Scauta, and results are ordered by usage (most/recently opened first) when
-the search box is empty.
+The search box always starts empty when you open Scauta — nothing is
+remembered between sessions, so there's nothing to clear before typing a new
+query. When the search box is empty, results are ordered by usage
+(most/recently opened first).
 
 ## Keyboard shortcuts
 

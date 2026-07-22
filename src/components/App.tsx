@@ -3,7 +3,7 @@ import type { BookmarkDocument, ScautaSettings, UsageHistory } from '@/types'
 import { DEFAULT_SETTINGS } from '@/types'
 import { SearchEngine } from '@/search'
 import { getDocuments, openBookmark } from '@/popup/scautaClient'
-import { getSettings, saveSettings, getUsageHistory, clearUsageHistory, getLastQuery, saveLastQuery } from '@/storage'
+import { getSettings, saveSettings, getUsageHistory, clearUsageHistory } from '@/storage'
 import { collectHistory } from '@/history/collector'
 import { useTheme } from '@/popup/useTheme'
 import { SearchBar } from './SearchBar'
@@ -22,17 +22,15 @@ export function App() {
   const [ready, setReady] = useState(false)
 
   const engineRef = useRef(new SearchEngine([]))
-  const queryDebounceRef = useRef<ReturnType<typeof setTimeout>>()
 
   useTheme(settings.theme)
 
   useEffect(() => {
     void (async () => {
-      const [docsResponse, storedSettings, history, lastQuery, historyDocs] = await Promise.all([
+      const [docsResponse, storedSettings, history, historyDocs] = await Promise.all([
         getDocuments(),
         getSettings(),
         getUsageHistory(),
-        getLastQuery(),
         // Browsing history is fetched directly (no background caching needed —
         // chrome.history.search is already fast and there's no useful event to
         // invalidate a cache on). Fetched unconditionally so toggling "search
@@ -43,7 +41,6 @@ export function App() {
       setHistoryDocuments(historyDocs)
       setSettings(storedSettings)
       setUsage(history)
-      setQuery(lastQuery)
       setReady(true)
     })()
   }, [])
@@ -68,14 +65,6 @@ export function App() {
   useEffect(() => {
     setSelectedIndex(0)
   }, [query, results.length])
-
-  const handleQueryChange = useCallback((value: string) => {
-    setQuery(value)
-    clearTimeout(queryDebounceRef.current)
-    queryDebounceRef.current = setTimeout(() => {
-      void saveLastQuery(value)
-    }, 250)
-  }, [])
 
   const updateSettings = useCallback((next: ScautaSettings) => {
     setSettings(next)
@@ -140,7 +129,7 @@ export function App() {
 
   return (
     <div className="flex h-full flex-col">
-      <SearchBar value={query} onChange={handleQueryChange} onSettingsClick={() => setView('settings')} />
+      <SearchBar value={query} onChange={setQuery} onSettingsClick={() => setView('settings')} />
       <ResultsList
         results={results}
         selectedIndex={selectedIndex}

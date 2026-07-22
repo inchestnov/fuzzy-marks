@@ -122,11 +122,12 @@ something else.
 
 ### Storage (`src/storage/index.ts`)
 
-A thin wrapper around `chrome.storage.local` with four concerns, each under
-its own key (`scauta:settings`, `scauta:usage`, `scauta:index-cache`,
-`scauta:last-query`): settings, usage history, the cached document index, and
-the last-typed query (restored on next open). No other module touches
-`chrome.storage` directly.
+A thin wrapper around `chrome.storage.local` with three concerns, each under
+its own key (`scauta:settings`, `scauta:usage`, `scauta:index-cache`):
+settings, usage history, and the cached document index. The search query
+itself is intentionally *not* persisted — the popup always opens with an
+empty search box (see Popup UI below) — so there is no last-query key. No
+other module touches `chrome.storage` directly.
 
 ### Popup UI (`src/popup/`, `src/components/`)
 
@@ -137,6 +138,11 @@ index, search vs. settings view) and wires together `SearchBar`,
 there's nothing to show), `Footer`, and `SettingsPanel`. Keyboard handling
 (`↑`/`↓`/`Enter`/`Esc`) is a single `keydown` listener on `window` in `App.tsx`
 rather than being spread across child components.
+
+The query `useState` initializes to `''` and is never read from or written
+to storage, so every popup open — the whole point of the shortcut being a
+quick in-and-out interaction — starts from a blank search box rather than
+whatever was typed last time.
 
 Theming is CSS-variable based (`src/popup/index.css`): a light and a dark
 palette, both built around a warm off-white/near-black background rather than

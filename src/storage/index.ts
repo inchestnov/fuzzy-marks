@@ -11,7 +11,6 @@ const KEYS = {
   settings: 'scauta:settings',
   usage: 'scauta:usage',
   indexCache: 'scauta:index-cache',
-  lastQuery: 'scauta:last-query',
 } as const
 
 async function get<T>(key: string, fallback: T): Promise<T> {
@@ -55,14 +54,6 @@ export async function getCachedIndex(): Promise<StoredIndexCache | undefined> {
 export async function setCachedIndex(documents: BookmarkDocument[]): Promise<void> {
   const cache: StoredIndexCache = { documents, builtAt: Date.now() }
   await set(KEYS.indexCache, cache)
-}
-
-export async function getLastQuery(): Promise<string> {
-  return get<string>(KEYS.lastQuery, '')
-}
-
-export async function saveLastQuery(query: string): Promise<void> {
-  await set(KEYS.lastQuery, query)
 }
 
 export const STORAGE_KEYS = KEYS
