@@ -56,14 +56,17 @@ from the product spec.
 
 ## Installation
 
-Scauta isn't published to the Chrome Web Store yet. Build it and load it as
-an unpacked extension:
+Scauta isn't published to the Chrome Web Store yet. Load it as an unpacked
+extension instead.
+
+### Option A: prebuilt (recommended)
+
+A GitHub Action rebuilds the extension on every push to `master` and
+publishes the output to the [`dist`](../../tree/dist) branch, so you don't
+need Node.js or a build step at all — just the built files:
 
 ```bash
-git clone <this-repo>
-cd scauta
-npm install
-npm run build
+git clone -b dist --single-branch git@github.com:inchestnov/scauta.git scauta-dist
 ```
 
 Then in Chrome:
@@ -71,11 +74,28 @@ Then in Chrome:
 1. Go to `chrome://extensions`.
 2. Enable **Developer mode** (top right).
 3. Click **Load unpacked**.
-4. Select the `dist/` directory produced by `npm run build`.
+4. Select the `scauta-dist` directory you just cloned.
 
-Scauta's icon appears in the toolbar. Pin it if you want it visible, though
-you'll normally never click it — the keyboard shortcut is the intended entry
-point.
+To pick up updates later, just `git pull` inside `scauta-dist` and click the
+reload icon on Scauta's card in `chrome://extensions`.
+
+### Option B: build from source
+
+If you want to modify Scauta or don't trust a prebuilt branch, clone the
+default branch and build it yourself:
+
+```bash
+git clone git@github.com:inchestnov/scauta.git
+cd scauta
+npm install
+npm run build
+```
+
+Then load the resulting `dist/` directory the same way (steps 1-4 above).
+
+Scauta's icon appears in the toolbar either way. Pin it if you want it
+visible, though you'll normally never click it — the keyboard shortcut is
+the intended entry point.
 
 ## Usage
 
