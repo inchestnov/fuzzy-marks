@@ -1,0 +1,104 @@
+import { describe, expect, it } from 'vitest'
+import { SearchEngine } from '@/search/searchEngine'
+import type { BookmarkDocument, UsageHistory } from '@/types'
+
+const docs: BookmarkDocument[] = [
+  {
+    id: 'k8s-dashboard',
+    name: 'Kubernetes Dashboard',
+    url: 'https://k8s.example.com/dashboard',
+    path: 'Development / Kubernetes',
+    keywords: ['k8s', 'example', 'com', 'dashboard'],
+  },
+  {
+    id: 'github-k8s-repo',
+    name: 'GitHub Kubernetes Repository',
+    url: 'https://github.com/example/kubernetes',
+    path: 'Development / Source Control',
+    keywords: ['github', 'com', 'example', 'kubernetes', 'source', 'control'],
+  },
+  {
+    id: 'grafana-prod',
+    name: 'Grafana Production Dashboard',
+    url: 'https://grafana.company.com',
+    path: 'Development / Kubernetes',
+    keywords: ['company', 'com'],
+  },
+  {
+    id: 'unrelated-recipes',
+    name: 'Favorite Recipes',
+    url: 'https://cooking.example.com/recipes',
+    path: 'Personal / Cooking',
+    keywords: ['cooking', 'example', 'com', 'recipes'],
+  },
+  {
+    id: 'unrelated-news',
+    name: 'Daily News',
+    url: 'https://news.example.com',
+    path: 'Personal',
+    keywords: ['news', 'example', 'com'],
+  },
+]
+
+function buildEngine(): SearchEngine {
+  return new SearchEngine(docs)
+}
+
+describe('SearchEngine', () => {
+  it('finds the Grafana bookmark for a multi-term query spanning path and name ("kub graf")', () => {
+    const engine = buildEngine()
+    const results = engine.search('kub graf')
+    expect(results.length).toBeGreaterThan(0)
+    expect(results[0].document.id).toBe('grafana-prod')
+  })
+
+  it('finds the GitHub Kubernetes repo for "git kub"', () => {
+    const engine = buildEngine()
+    const results = engine.search('git kub')
+    expect(results.length).toBeGreaterThan(0)
+    expect(results[0].document.id).toBe('github-k8s-repo')
+  })
+
+  it('tolerates a typo in "grafna" and still surfaces Grafana Production Dashboard', () => {
+    const engine = buildEngine()
+    const results = engine.search('grafna')
+    expect(results.length).toBeGreaterThan(0)
+    expect(results[0].document.id).toBe('grafana-prod')
+  })
+
+  it('returns all documents ordered by usage (desc) then name when the query is empty', () => {
+    const engine = buildEngine()
+    const usage: UsageHistory = {
+      'unrelated-news': { count: 10, lastUsedAt: Date.now() },
+    }
+
+    const results = engine.search('', { usage })
+    expect(results[0].document.id).toBe('unrelated-news')
+
+    // The remaining docs (zero usage boost) should be alphabetically ordered by name.
+    const rest = results.slice(1).map((r) => r.document.name)
+    const sortedRest = [...rest].sort((a, b) => a.localeCompare(b))
+    expect(rest).toEqual(sortedRest)
+  })
+
+  it('respects the limit option', () => {
+    const engine = buildEngine()
+    const resultsAll = engine.search('', { limit: 100 })
+    expect(resultsAll).toHaveLength(docs.length)
+
+    const resultsLimited = engine.search('', { limit: 2 })
+    expect(resultsLimited).toHaveLength(2)
+
+    const fuzzyLimited = engine.search('example', { limit: 1 })
+    expect(fuzzyLimited).toHaveLength(1)
+  })
+
+  it('reflects documents set via setDocuments', () => {
+    const engine = new SearchEngine([])
+    expect(engine.size).toBe(0)
+    engine.setDocuments(docs)
+    expect(engine.size).toBe(docs.length)
+    const results = engine.search('grafana')
+    expect(results[0].document.id).toBe('grafana-prod')
+  })
+})
