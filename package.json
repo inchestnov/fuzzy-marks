@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "Instant fuzzy search and keyboard navigation for your browser bookmarks.",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite",

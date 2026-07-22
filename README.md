@@ -208,3 +208,7 @@ lifecycle, message handling, and tab focus-or-open logic
   [`docs/architecture.md`](docs/architecture.md#extension-points-for-other-browsers).
 - **Chrome Web Store listing** — not published yet; see
   [Installation](#installation) for the unpacked-extension workflow.
+
+## License
+
+[MIT](LICENSE)
