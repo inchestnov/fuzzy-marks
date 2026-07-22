@@ -116,7 +116,7 @@ export function installChromeMock(): ChromeMock {
     },
     commands: {
       getAll: vi.fn(async () => [
-        { name: '_execute_action', shortcut: 'Ctrl+Shift+R' },
+        { name: '_execute_action', shortcut: 'Ctrl+Shift+E' },
       ]),
     },
   }

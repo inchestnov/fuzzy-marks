@@ -27,8 +27,8 @@ export default defineManifest({
   commands: {
     _execute_action: {
       suggested_key: {
-        default: 'Ctrl+Shift+R',
-        mac: 'Command+Shift+R',
+        default: 'Ctrl+Shift+E',
+        mac: 'Command+Shift+E',
       },
       description: 'Open Scauta bookmark search',
     },

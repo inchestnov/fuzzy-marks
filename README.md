@@ -95,7 +95,7 @@ the search box is empty.
 
 | Shortcut | Action |
 | --- | --- |
-| `Ctrl+Shift+R` (Windows/Linux) / `Cmd+Shift+R` (macOS) | Open Scauta |
+| `Ctrl+Shift+E` (Windows/Linux) / `Cmd+Shift+E` (macOS) | Open Scauta |
 | `↑` / `↓` | Move selection |
 | `Enter` | Open selected bookmark |
 | `Esc` | Close the popup, or leave Settings |
