@@ -33,6 +33,11 @@ Grafana dashboard" to the tab being open, in as few keystrokes as possible.
 - **Usage-aware.** Bookmarks you open often, or opened recently, are boosted
   within their tier — a frequently used bookmark won't jump ahead of an exact
   name match, but it will jump ahead of an equally-fuzzy competitor.
+- **Optionally searches browsing history too**, not just bookmarks — so a
+  page you visited but never bookmarked is still one search away. On by
+  default; turn it off in Settings if you only want bookmarks. History
+  results are visually tagged so you can tell them apart from bookmarks at a
+  glance.
 - **Keyboard-only.** Open with a global shortcut, type, move with `↑`/`↓`,
   open with `Enter`, dismiss with `Esc`. No mouse required at any step.
 - **Live index.** The background service worker rebuilds the search index
@@ -47,8 +52,6 @@ Grafana dashboard" to the tab being open, in as few keystrokes as possible.
 | Light | Dark |
 | --- | --- |
 | ![Search, light theme](docs/screenshots/search-light.png) | ![Search, dark theme](docs/screenshots/search-dark.png) |
-
-![Settings panel](docs/screenshots/settings.png)
 
 Query shown above is `kub graf`, matching "Grafana Production Dashboard"
 filed under `Bookmarks bar / Development / Kubernetes` — the exact example
@@ -136,7 +139,11 @@ Open Settings from the gear icon in the top-right of the search popup.
 
 - **Shortcut** — read-only display of the currently bound shortcut, with a
   link out to `chrome://extensions/shortcuts` to change it.
-- **Track usage history** — toggles whether opening a bookmark affects future
+- **Search browsing history** — toggles whether `chrome.history` entries are
+  included as a search source alongside bookmarks. On by default. History
+  data never leaves the browser — it's only read locally to build the
+  in-popup search index, the same way bookmarks are.
+- **Track usage history** — toggles whether opening a result affects future
   ranking. Turning it off stops recording new opens; it does not erase what's
   already stored.
 - **Max results** — how many results to show at once (3–20).
@@ -179,6 +186,7 @@ scauta/
 ├── src/
 │   ├── background/      # MV3 service worker: index lifecycle, message handling
 │   ├── bookmarks/       # chrome.bookmarks.getTree() -> BookmarkDocument[]
+│   ├── history/         # chrome.history.search() -> BookmarkDocument[], same shape as bookmarks
 │   ├── search/          # Fuse.js engine + ranking tiers
 │   ├── storage/         # chrome.storage.local wrapper
 │   ├── shortcuts/       # Reads the configured command, links to chrome://extensions/shortcuts
@@ -204,13 +212,15 @@ Path alias `@/*` maps to `src/*` (configured in both `tsconfig.json` and
 npm run test
 ```
 
-45 tests across 5 files, all passing. Unit tests (`tests/unit/`) cover the
+48 tests across 6 files, all passing. Unit tests (`tests/unit/`) cover the
 ranking tiers and usage-boost math (`ranking.test.ts`), the bookmark tree
 flattening logic (`collector.test.ts`), and the search engine's
 tokenization/limit/ordering behavior against the spec's own examples
 (`searchEngine.test.ts`). Integration tests (`tests/integration/`) exercise
 the bookmark-collection-to-search pipeline end-to-end
-(`bookmarks-flow.test.ts`) and the background service worker's index
+(`bookmarks-flow.test.ts`), browsing-history collection merged with
+bookmarks into one id-collision-free searchable set
+(`history-flow.test.ts`), and the background service worker's index
 lifecycle, message handling, and tab focus-or-open logic
 (`background.test.ts`), all against the in-memory `chrome.*` API mock in
 `tests/mocks/chrome.ts` — no real browser required.

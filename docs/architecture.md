@@ -204,10 +204,11 @@ UI code never constructs a raw message.
 The spec calls for an architecture that can grow from Chrome-only to
 Firefox/Edge/Brave via adapters (spec section 20) without the search, ranking,
 or UI layers changing. The codebase already supports this because every
-`chrome.*` call is confined to four modules, and nothing outside them
+`chrome.*` call is confined to five modules, and nothing outside them
 references the `chrome` global:
 
 - `src/bookmarks/collector.ts` — the only caller of `chrome.bookmarks.getTree()`.
+- `src/history/collector.ts` — the only caller of `chrome.history.search()`.
 - `src/storage/index.ts` — the only caller of `chrome.storage.local`.
 - `src/shortcuts/index.ts` — the only caller of `chrome.commands.getAll()`
   and the only place that opens `chrome://extensions/shortcuts`.

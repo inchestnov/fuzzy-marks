@@ -26,7 +26,8 @@ function tokensFromPath(path: string): string[] {
     .filter(Boolean)
 }
 
-function buildKeywords(name: string, url: string, path: string): string[] {
+/** Shared with src/history/collector.ts, which builds the same document shape from chrome.history entries. */
+export function buildKeywords(name: string, url: string, path: string): string[] {
   const tokens = new Set<string>()
   for (const token of [...tokensFromUrl(url), ...tokensFromPath(path)]) {
     tokens.add(token.toLowerCase())

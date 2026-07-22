@@ -4,6 +4,7 @@ import { DEFAULT_SETTINGS } from '@/types'
 import { SearchEngine } from '@/search'
 import { getDocuments, openBookmark } from '@/popup/scautaClient'
 import { getSettings, saveSettings, getUsageHistory, clearUsageHistory, getLastQuery, saveLastQuery } from '@/storage'
+import { collectHistory } from '@/history/collector'
 import { useTheme } from '@/popup/useTheme'
 import { SearchBar } from './SearchBar'
 import { ResultsList } from './ResultsList'
@@ -11,7 +12,8 @@ import { Footer } from './Footer'
 import { SettingsPanel } from './SettingsPanel'
 
 export function App() {
-  const [documents, setDocuments] = useState<BookmarkDocument[]>([])
+  const [bookmarkDocuments, setBookmarkDocuments] = useState<BookmarkDocument[]>([])
+  const [historyDocuments, setHistoryDocuments] = useState<BookmarkDocument[]>([])
   const [usage, setUsage] = useState<UsageHistory>({})
   const [settings, setSettings] = useState<ScautaSettings>(DEFAULT_SETTINGS)
   const [query, setQuery] = useState('')
@@ -26,14 +28,19 @@ export function App() {
 
   useEffect(() => {
     void (async () => {
-      const [docsResponse, storedSettings, history, lastQuery] = await Promise.all([
+      const [docsResponse, storedSettings, history, lastQuery, historyDocs] = await Promise.all([
         getDocuments(),
         getSettings(),
         getUsageHistory(),
         getLastQuery(),
+        // Browsing history is fetched directly (no background caching needed —
+        // chrome.history.search is already fast and there's no useful event to
+        // invalidate a cache on). Fetched unconditionally so toggling "search
+        // history" on mid-session doesn't need a re-fetch.
+        collectHistory().catch(() => []),
       ])
-      engineRef.current.setDocuments(docsResponse.documents)
-      setDocuments(docsResponse.documents)
+      setBookmarkDocuments(docsResponse.documents)
+      setHistoryDocuments(historyDocs)
       setSettings(storedSettings)
       setUsage(history)
       setQuery(lastQuery)
@@ -41,13 +48,22 @@ export function App() {
     })()
   }, [])
 
+  const searchableDocuments = useMemo(
+    () => (settings.searchHistoryEnabled ? [...bookmarkDocuments, ...historyDocuments] : bookmarkDocuments),
+    [bookmarkDocuments, historyDocuments, settings.searchHistoryEnabled],
+  )
+
   const results = useMemo(() => {
     if (!ready) return []
+    // Rebuilding the engine here (rather than in a separate effect) keeps it
+    // synchronous with this computation — a useEffect runs a render behind,
+    // which meant toggling "search history" showed stale results for one tick.
+    engineRef.current.setDocuments(searchableDocuments)
     return engineRef.current.search(query, {
       limit: settings.maxResults,
       usage: settings.historyEnabled ? usage : {},
     })
-  }, [query, documents, usage, settings.maxResults, settings.historyEnabled, ready])
+  }, [query, searchableDocuments, usage, settings.maxResults, settings.historyEnabled, ready])
 
   useEffect(() => {
     setSelectedIndex(0)
@@ -129,7 +145,7 @@ export function App() {
         results={results}
         selectedIndex={selectedIndex}
         hasQuery={query.trim().length > 0}
-        hasBookmarks={documents.length > 0}
+        hasDocuments={searchableDocuments.length > 0}
         onSelect={setSelectedIndex}
         onOpen={openResult}
       />

@@ -1,10 +1,10 @@
 interface EmptyStateProps {
   hasQuery: boolean
-  hasBookmarks: boolean
+  hasDocuments: boolean
 }
 
-export function EmptyState({ hasQuery, hasBookmarks }: EmptyStateProps) {
-  if (!hasBookmarks) {
+export function EmptyState({ hasQuery, hasDocuments }: EmptyStateProps) {
+  if (!hasDocuments) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-1 px-6 text-center">
         <p className="text-[13px] text-[var(--color-text)]">No bookmarks yet</p>

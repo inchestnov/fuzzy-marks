@@ -1,13 +1,19 @@
-/** A single searchable bookmark, derived from the browser's bookmark tree. */
+/**
+ * A single searchable entry — either a browser bookmark or a browsing
+ * history item, normalized into the same shape so both can be indexed and
+ * ranked together. `source` is omitted for bookmarks (the original/default
+ * case) and set explicitly for history entries.
+ */
 export interface BookmarkDocument {
   id: string
   name: string
   url: string
-  /** Folder path, e.g. "Development / Kubernetes" */
+  /** Folder path, e.g. "Development / Kubernetes". Empty for history entries. */
   path: string
   /** Extra searchable tokens: domain parts, folder names, etc. */
   keywords: string[]
   dateAdded?: number
+  source?: 'bookmark' | 'history'
 }
 
 export interface SearchResult {
@@ -18,13 +24,17 @@ export interface SearchResult {
 export type ThemePreference = 'system' | 'light' | 'dark'
 
 export interface ScautaSettings {
+  /** Whether opening a result boosts its future ranking (frequency + recency). */
   historyEnabled: boolean
+  /** Whether browsing history (chrome.history) is included as a search source, alongside bookmarks. */
+  searchHistoryEnabled: boolean
   maxResults: number
   theme: ThemePreference
 }
 
 export const DEFAULT_SETTINGS: ScautaSettings = {
   historyEnabled: true,
+  searchHistoryEnabled: true,
   maxResults: 8,
   theme: 'system',
 }

@@ -18,7 +18,11 @@ export function ResultItem({ document, selected, onSelect, onOpen }: ResultItemP
     }
   }, [selected])
 
-  const breadcrumb = document.path ? document.path.split(' / ').join(' › ') : null
+  const breadcrumb = document.path
+    ? document.path.split(' / ').join(' › ')
+    : document.source === 'history'
+      ? 'History'
+      : null
 
   return (
     <button

@@ -6,7 +6,7 @@ interface ResultsListProps {
   results: SearchResult[]
   selectedIndex: number
   hasQuery: boolean
-  hasBookmarks: boolean
+  hasDocuments: boolean
   onSelect: (index: number) => void
   onOpen: (index: number) => void
 }
@@ -15,12 +15,12 @@ export function ResultsList({
   results,
   selectedIndex,
   hasQuery,
-  hasBookmarks,
+  hasDocuments,
   onSelect,
   onOpen,
 }: ResultsListProps) {
   if (results.length === 0) {
-    return <EmptyState hasQuery={hasQuery} hasBookmarks={hasBookmarks} />
+    return <EmptyState hasQuery={hasQuery} hasDocuments={hasDocuments} />
   }
 
   return (

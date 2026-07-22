@@ -8,6 +8,14 @@ interface MockTab {
   windowId: number
 }
 
+interface MockHistoryItem {
+  id: string
+  url?: string
+  title?: string
+  lastVisitTime?: number
+  visitCount?: number
+}
+
 function createEvent() {
   const listeners = new Set<Listener>()
   return {
@@ -55,6 +63,10 @@ export interface ChromeMock {
   commands: {
     getAll: Mock<[], Promise<Array<{ name: string; shortcut: string }>>>
   }
+  history: {
+    search: Mock<[{ text: string; startTime?: number; maxResults?: number }], Promise<MockHistoryItem[]>>
+    __setItems: (items: MockHistoryItem[]) => void
+  }
 }
 
 /**
@@ -67,6 +79,7 @@ export interface ChromeMock {
 export function installChromeMock(): ChromeMock {
   let tree: unknown[] = [{ id: '0', title: '', children: [] }]
   let tabId = 1
+  let historyItems: MockHistoryItem[] = []
 
   const mock: ChromeMock = {
     bookmarks: {
@@ -118,6 +131,12 @@ export function installChromeMock(): ChromeMock {
       getAll: vi.fn(async () => [
         { name: '_execute_action', shortcut: 'Ctrl+Shift+E' },
       ]),
+    },
+    history: {
+      search: vi.fn(async (_query: { text: string; startTime?: number; maxResults?: number }) => historyItems),
+      __setItems: (items: MockHistoryItem[]) => {
+        historyItems = items
+      },
     },
   }
 

@@ -59,6 +59,15 @@ export function SettingsPanel({ settings, onChange, onClearHistory, onClose }: S
             Search
           </div>
           <label className="flex items-center justify-between text-[13px] text-[var(--color-text)]">
+            Search browsing history
+            <input
+              type="checkbox"
+              checked={settings.searchHistoryEnabled}
+              onChange={(event) => onChange({ ...settings, searchHistoryEnabled: event.target.checked })}
+              className="h-4 w-4 accent-[var(--color-accent)]"
+            />
+          </label>
+          <label className="flex items-center justify-between text-[13px] text-[var(--color-text)]">
             Track usage history
             <input
               type="checkbox"
