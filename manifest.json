@@ -24,7 +24,8 @@
     "bookmarks",
     "storage",
     "favicon",
-    "history"
+    "history",
+    "tabs"
   ],
   "commands": {
     "_execute_action": {
