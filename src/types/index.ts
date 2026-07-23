@@ -13,7 +13,7 @@ export interface BookmarkDocument {
   /** Extra searchable tokens: domain parts, folder names, etc. */
   keywords: string[]
   dateAdded?: number
-  source?: 'bookmark' | 'history'
+  source?: 'bookmark' | 'history' | 'tab'
 }
 
 export interface SearchResult {
@@ -26,15 +26,21 @@ export type ThemePreference = 'system' | 'light' | 'dark'
 export interface ScautaSettings {
   /** Whether opening a result boosts its future ranking (frequency + recency). */
   historyEnabled: boolean
+  /** Whether bookmarks are included as a search source. */
+  searchBookmarksEnabled: boolean
   /** Whether browsing history (chrome.history) is included as a search source, alongside bookmarks. */
   searchHistoryEnabled: boolean
+  /** Whether currently open tabs (chrome.tabs) are included as a search source, alongside bookmarks. */
+  searchTabsEnabled: boolean
   maxResults: number
   theme: ThemePreference
 }
 
 export const DEFAULT_SETTINGS: ScautaSettings = {
   historyEnabled: true,
+  searchBookmarksEnabled: true,
   searchHistoryEnabled: true,
+  searchTabsEnabled: true,
   maxResults: 8,
   theme: 'system',
 }
@@ -57,9 +63,10 @@ export type ScautaMessage =
   | { type: 'scauta:get-documents' }
   | { type: 'scauta:refresh-index' }
   | { type: 'scauta:record-open'; bookmarkId: string }
-  | { type: 'scauta:open-bookmark'; url: string; bookmarkId: string }
+  | { type: 'scauta:open-bookmark'; url: string; bookmarkId: string; newTab?: boolean }
 
 export interface GetDocumentsResponse {
   documents: BookmarkDocument[]
   historyDocuments: BookmarkDocument[]
+  tabDocuments: BookmarkDocument[]
 }

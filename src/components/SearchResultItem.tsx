@@ -17,6 +17,9 @@ function describeSource(document: BookmarkDocument): string {
     const time = document.dateAdded ? formatRelativeTime(document.dateAdded) : undefined
     return time ? `History · ${time}` : 'History'
   }
+  if (document.source === 'tab') {
+    return 'Open tab'
+  }
   const breadcrumb = document.path ? document.path.split(' / ').join(' › ') : null
   return breadcrumb ? `Bookmark · ${breadcrumb}` : 'Bookmark'
 }

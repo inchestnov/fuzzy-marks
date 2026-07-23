@@ -5,6 +5,7 @@ type Listener = (...args: any[]) => any
 interface MockTab {
   id: number
   url: string
+  title?: string
   windowId: number
 }
 
@@ -52,10 +53,11 @@ export interface ChromeMock {
     sendMessage: Mock<any[], unknown>
   }
   tabs: {
-    query: Mock<[{ url?: string }], Promise<MockTab[]>>
+    query: Mock<[{ url?: string }?], Promise<MockTab[]>>
     create: Mock<[{ url: string }], Promise<MockTab>>
     update: Mock<any[], Promise<undefined>>
     __tabs: MockTab[]
+    __setTabs: (tabs: MockTab[]) => void
   }
   windows: {
     update: Mock<any[], Promise<undefined>>
@@ -118,13 +120,18 @@ export function installChromeMock(): ChromeMock {
     },
     tabs: {
       __tabs: [],
-      query: vi.fn(async ({ url }: { url?: string }) => mock.tabs.__tabs.filter((t) => t.url === url)),
+      query: vi.fn(async ({ url }: { url?: string } = {}) =>
+        url === undefined ? mock.tabs.__tabs : mock.tabs.__tabs.filter((t) => t.url === url),
+      ),
       create: vi.fn(async ({ url }: { url: string }) => {
         const tab = { id: tabId++, url, windowId: 1 }
         mock.tabs.__tabs.push(tab)
         return tab
       }),
       update: vi.fn(async () => undefined),
+      __setTabs: (tabs: MockTab[]) => {
+        mock.tabs.__tabs = tabs
+      },
     },
     windows: {
       update: vi.fn(async () => undefined),

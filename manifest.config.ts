@@ -23,7 +23,7 @@ export default defineManifest({
     service_worker: 'src/background/index.ts',
     type: 'module',
   },
-  permissions: ['bookmarks', 'storage', 'favicon', 'history'],
+  permissions: ['bookmarks', 'storage', 'favicon', 'history', 'tabs'],
   commands: {
     _execute_action: {
       suggested_key: {

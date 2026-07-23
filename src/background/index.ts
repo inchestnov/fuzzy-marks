@@ -1,5 +1,6 @@
 import { collectBookmarks } from '@/bookmarks/collector'
 import { collectHistory } from '@/history/collector'
+import { collectTabs } from '@/tabs/collector'
 import {
   getCachedIndex,
   setCachedIndex,
@@ -64,8 +65,15 @@ const bookmarkIndex = createIndexOwner(collectBookmarks, getCachedIndex, setCach
 const historyIndex = createIndexOwner(collectHistory, getCachedHistoryIndex, setCachedHistoryIndex)
 
 async function ensureAll(): Promise<GetDocumentsResponse> {
-  const [documents, historyDocuments] = await Promise.all([bookmarkIndex.ensure(), historyIndex.ensure()])
-  return { documents, historyDocuments }
+  const [documents, historyDocuments, tabDocuments] = await Promise.all([
+    bookmarkIndex.ensure(),
+    historyIndex.ensure(),
+    // Tabs are never cached — the open-tab list changes constantly and
+    // querying it is cheap, so it's read live on every request instead of
+    // going through the rebuild/cache dance the other two sources use.
+    collectTabs().catch(() => []),
+  ])
+  return { documents, historyDocuments, tabDocuments }
 }
 
 function scheduleRebuildAll(): void {
@@ -93,20 +101,26 @@ for (const event of [chrome.history.onVisited, chrome.history.onVisitRemoved]) {
   event.addListener(() => historyIndex.scheduleRebuild())
 }
 
-async function openBookmarkTab(url: string): Promise<void> {
-  const existing = await chrome.tabs.query({ url })
-  const [match] = existing
-  if (match?.id !== undefined) {
-    await chrome.tabs.update(match.id, { active: true })
-    if (match.windowId !== undefined) {
-      await chrome.windows.update(match.windowId, { focused: true })
+async function openBookmarkTab(url: string, forceNewTab: boolean): Promise<void> {
+  if (!forceNewTab) {
+    const existing = await chrome.tabs.query({ url })
+    const [match] = existing
+    if (match?.id !== undefined) {
+      await chrome.tabs.update(match.id, { active: true })
+      if (match.windowId !== undefined) {
+        await chrome.windows.update(match.windowId, { focused: true })
+      }
+      return
     }
-    return
   }
   await chrome.tabs.create({ url })
 }
 
-const EMPTY_DOCUMENTS_RESPONSE: GetDocumentsResponse = { documents: [], historyDocuments: [] }
+const EMPTY_DOCUMENTS_RESPONSE: GetDocumentsResponse = {
+  documents: [],
+  historyDocuments: [],
+  tabDocuments: [],
+}
 
 /**
  * sendResponse must always be called with a well-formed value, no matter
@@ -140,7 +154,10 @@ chrome.runtime.onMessage.addListener((message: ScautaMessage, _sender, sendRespo
       return true
     }
     case 'scauta:open-bookmark': {
-      void Promise.all([recordBookmarkOpen(message.bookmarkId), openBookmarkTab(message.url)])
+      void Promise.all([
+        recordBookmarkOpen(message.bookmarkId),
+        openBookmarkTab(message.url, message.newTab ?? false),
+      ])
         .catch(() => undefined)
         .then(() => sendResponse({ ok: true }))
       return true

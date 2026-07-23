@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ScautaSettings, ThemePreference } from '@/types'
+import { getConfiguredShortcut, tokenizeShortcut } from '@/shortcuts'
+import { Kbd } from './Kbd'
 import { ShortcutEditor } from './ShortcutEditor'
 import { ToggleSwitch } from './ToggleSwitch'
 import { Tooltip } from './Tooltip'
@@ -21,9 +23,14 @@ const CLEAR_CONFIRMATION_MS = 1500
 
 export function SettingsPanel({ settings, onChange, onClearHistory, onClose }: SettingsPanelProps) {
   const [cleared, setCleared] = useState(false)
+  const [shortcut, setShortcut] = useState<string | null>(null)
   const clearTimeoutRef = useRef<ReturnType<typeof setTimeout>>()
 
   useEffect(() => () => clearTimeout(clearTimeoutRef.current), [])
+
+  useEffect(() => {
+    void getConfiguredShortcut().then(setShortcut)
+  }, [])
 
   function handleClearHistory() {
     onClearHistory()
@@ -54,21 +61,46 @@ export function SettingsPanel({ settings, onChange, onClearHistory, onClose }: S
           <ShortcutEditor />
         </section>
 
+        <section className="space-y-2">
+          <div className="text-[11px] uppercase tracking-wide text-[var(--color-text-muted)]">
+            Shortcuts
+          </div>
+
+          <div className="space-y-2 text-[13px] text-[var(--color-text)]">
+            {shortcut && (
+              <div className="flex items-center justify-between">
+                <span>Open Scout</span>
+                <div className="flex items-center gap-1">
+                  {tokenizeShortcut(shortcut).map((token, index) => (
+                    <Kbd key={index}>{token}</Kbd>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="flex items-center justify-between">
+              <span>Navigate</span>
+              <div className="flex items-center gap-1">
+                <Kbd>↑</Kbd>
+                <Kbd>↓</Kbd>
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Open in current tab</span>
+              <Kbd>Enter</Kbd>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Open in new tab</span>
+              <div className="flex items-center gap-1">
+                <Kbd>Shift</Kbd>
+                <Kbd>Enter</Kbd>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section className="space-y-3">
           <div className="text-[11px] uppercase tracking-wide text-[var(--color-text-muted)]">
             Search
-          </div>
-
-          <div className="flex items-center justify-between text-[14px] text-[var(--color-text)]">
-            <span className="flex items-center gap-1.5">
-              Search browsing history
-              <Tooltip text="Also match pages you've visited but never bookmarked, using your browser history." />
-            </span>
-            <ToggleSwitch
-              checked={settings.searchHistoryEnabled}
-              onChange={(checked) => onChange({ ...settings, searchHistoryEnabled: checked })}
-              ariaLabel="Search browsing history"
-            />
           </div>
 
           <div className="flex items-center justify-between text-[14px] text-[var(--color-text)]">

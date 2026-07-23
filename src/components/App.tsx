@@ -6,13 +6,14 @@ import { getDocuments, openBookmark } from '@/popup/scautaClient'
 import { getSettings, saveSettings, getUsageHistory, clearUsageHistory } from '@/storage'
 import { useTheme } from '@/popup/useTheme'
 import { SearchInput } from './SearchInput'
+import { SourceFilters } from './SourceFilters'
 import { SearchResults } from './SearchResults'
-import { Footer } from './Footer'
 import { SettingsPanel } from './SettingsPanel'
 
 export function App() {
   const [bookmarkDocuments, setBookmarkDocuments] = useState<BookmarkDocument[]>([])
   const [historyDocuments, setHistoryDocuments] = useState<BookmarkDocument[]>([])
+  const [tabDocuments, setTabDocuments] = useState<BookmarkDocument[]>([])
   const [usage, setUsage] = useState<UsageHistory>({})
   const [settings, setSettings] = useState<ScautaSettings>(DEFAULT_SETTINGS)
   const [query, setQuery] = useState('')
@@ -21,6 +22,10 @@ export function App() {
   const [ready, setReady] = useState(false)
 
   const engineRef = useRef(new SearchEngine([]))
+  const searchInputRef = useRef<HTMLInputElement | null>(null)
+  const bookmarksCheckboxRef = useRef<HTMLInputElement | null>(null)
+  const historyCheckboxRef = useRef<HTMLInputElement | null>(null)
+  const tabsCheckboxRef = useRef<HTMLInputElement | null>(null)
 
   useTheme(settings.theme)
 
@@ -36,6 +41,7 @@ export function App() {
       // docsResponse itself could in principle be malformed here.
       setBookmarkDocuments(docsResponse?.documents ?? [])
       setHistoryDocuments(docsResponse?.historyDocuments ?? [])
+      setTabDocuments(docsResponse?.tabDocuments ?? [])
       setSettings(storedSettings)
       setUsage(history)
       setReady(true)
@@ -43,8 +49,19 @@ export function App() {
   }, [])
 
   const searchableDocuments = useMemo(
-    () => (settings.searchHistoryEnabled ? [...bookmarkDocuments, ...historyDocuments] : bookmarkDocuments),
-    [bookmarkDocuments, historyDocuments, settings.searchHistoryEnabled],
+    () => [
+      ...(settings.searchBookmarksEnabled ? bookmarkDocuments : []),
+      ...(settings.searchHistoryEnabled ? historyDocuments : []),
+      ...(settings.searchTabsEnabled ? tabDocuments : []),
+    ],
+    [
+      bookmarkDocuments,
+      historyDocuments,
+      tabDocuments,
+      settings.searchBookmarksEnabled,
+      settings.searchHistoryEnabled,
+      settings.searchTabsEnabled,
+    ],
   )
 
   const results = useMemo(() => {
@@ -74,10 +91,10 @@ export function App() {
   }, [])
 
   const openResult = useCallback(
-    (index: number) => {
+    (index: number, newTab = false) => {
       const result = results[index]
       if (!result) return
-      void openBookmark(result.document.id, result.document.url)
+      void openBookmark(result.document.id, result.document.url, newTab)
       window.close()
     },
     [results],
@@ -95,23 +112,59 @@ export function App() {
         return
       }
 
-      if (view !== 'search' || results.length === 0) return
+      if (view !== 'search') return
+
+      if (event.key === 'Tab') {
+        event.preventDefault()
+        const focusOrder = [bookmarksCheckboxRef.current, historyCheckboxRef.current, tabsCheckboxRef.current]
+        const currentIndex = focusOrder.findIndex((el) => el === document.activeElement)
+        const step = event.shiftKey ? -1 : 1
+        const nextIndex = (currentIndex + step + focusOrder.length) % focusOrder.length
+        focusOrder[nextIndex]?.focus()
+        return
+      }
+
+      if (event.key === 'Enter') {
+        const activeElement = document.activeElement
+        if (activeElement === bookmarksCheckboxRef.current) {
+          event.preventDefault()
+          updateSettings({ ...settings, searchBookmarksEnabled: !settings.searchBookmarksEnabled })
+          return
+        }
+        if (activeElement === historyCheckboxRef.current) {
+          event.preventDefault()
+          updateSettings({ ...settings, searchHistoryEnabled: !settings.searchHistoryEnabled })
+          return
+        }
+        if (activeElement === tabsCheckboxRef.current) {
+          event.preventDefault()
+          updateSettings({ ...settings, searchTabsEnabled: !settings.searchTabsEnabled })
+          return
+        }
+      }
+
+      if (results.length === 0) return
 
       if (event.key === 'ArrowDown') {
         event.preventDefault()
+        // Arrow navigation always means "I'm picking a result" — pull focus
+        // back off a checkbox so a following Enter opens the result instead
+        // of re-toggling whichever checkbox last had focus.
+        searchInputRef.current?.focus()
         setSelectedIndex((current) => (current + 1) % results.length)
       } else if (event.key === 'ArrowUp') {
         event.preventDefault()
+        searchInputRef.current?.focus()
         setSelectedIndex((current) => (current - 1 + results.length) % results.length)
       } else if (event.key === 'Enter') {
         event.preventDefault()
-        openResult(selectedIndex)
+        openResult(selectedIndex, event.shiftKey)
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [view, results, selectedIndex, openResult])
+  }, [view, results, selectedIndex, openResult, settings, updateSettings])
 
   if (view === 'settings') {
     return (
@@ -126,7 +179,24 @@ export function App() {
 
   return (
     <div className="flex h-full animate-fade-in flex-col">
-      <SearchInput value={query} onChange={setQuery} />
+      <SearchInput
+        value={query}
+        onChange={setQuery}
+        resultCount={results.length}
+        onSettingsClick={() => setView('settings')}
+        inputRef={searchInputRef}
+      />
+      <SourceFilters
+        bookmarksEnabled={settings.searchBookmarksEnabled}
+        onBookmarksChange={(checked) => updateSettings({ ...settings, searchBookmarksEnabled: checked })}
+        bookmarksInputRef={(el) => (bookmarksCheckboxRef.current = el)}
+        historyEnabled={settings.searchHistoryEnabled}
+        onHistoryChange={(checked) => updateSettings({ ...settings, searchHistoryEnabled: checked })}
+        historyInputRef={(el) => (historyCheckboxRef.current = el)}
+        tabsEnabled={settings.searchTabsEnabled}
+        onTabsChange={(checked) => updateSettings({ ...settings, searchTabsEnabled: checked })}
+        tabsInputRef={(el) => (tabsCheckboxRef.current = el)}
+      />
       <SearchResults
         results={results}
         selectedIndex={selectedIndex}
@@ -135,7 +205,6 @@ export function App() {
         onSelect={setSelectedIndex}
         onOpen={openResult}
       />
-      <Footer resultCount={results.length} onSettingsClick={() => setView('settings')} />
     </div>
   )
 }
