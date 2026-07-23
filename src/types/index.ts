@@ -61,4 +61,5 @@ export type ScautaMessage =
 
 export interface GetDocumentsResponse {
   documents: BookmarkDocument[]
+  historyDocuments: BookmarkDocument[]
 }

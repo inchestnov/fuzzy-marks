@@ -4,7 +4,6 @@ import { DEFAULT_SETTINGS } from '@/types'
 import { SearchEngine } from '@/search'
 import { getDocuments, openBookmark } from '@/popup/scautaClient'
 import { getSettings, saveSettings, getUsageHistory, clearUsageHistory } from '@/storage'
-import { collectHistory } from '@/history/collector'
 import { useTheme } from '@/popup/useTheme'
 import { SearchBar } from './SearchBar'
 import { ResultsList } from './ResultsList'
@@ -27,18 +26,13 @@ export function App() {
 
   useEffect(() => {
     void (async () => {
-      const [docsResponse, storedSettings, history, historyDocs] = await Promise.all([
+      const [docsResponse, storedSettings, history] = await Promise.all([
         getDocuments(),
         getSettings(),
         getUsageHistory(),
-        // Browsing history is fetched directly (no background caching needed —
-        // chrome.history.search is already fast and there's no useful event to
-        // invalidate a cache on). Fetched unconditionally so toggling "search
-        // history" on mid-session doesn't need a re-fetch.
-        collectHistory().catch(() => []),
       ])
       setBookmarkDocuments(docsResponse.documents)
-      setHistoryDocuments(historyDocs)
+      setHistoryDocuments(docsResponse.historyDocuments)
       setSettings(storedSettings)
       setUsage(history)
       setReady(true)

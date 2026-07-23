@@ -118,6 +118,39 @@ describe('background service worker integration', () => {
     expect(response.documents.map((d) => d.id).sort()).toEqual(['2', '3'])
   })
 
+  it('builds the history index on install and rebuilds it when a page is visited', async () => {
+    const mock = await loadBackground()
+    mock.bookmarks.__setTree(sampleTree())
+    mock.history.__setItems([{ id: '10', title: 'First Visit', url: 'https://first.example.com' }])
+    mock.runtime.onInstalled.__emit()
+    await flushAsync()
+
+    let cached = mock.storage.local.__store['scauta:history-index-cache'] as
+      | { documents: { id: string }[] }
+      | undefined
+    expect(cached?.documents.map((d) => d.id)).toEqual(['history:10'])
+
+    // Simulate a new page visit — onVisited should trigger a rebuild without
+    // any popup ever having been opened, unlike the old fetch-on-popup-open design.
+    mock.history.__setItems([
+      { id: '10', title: 'First Visit', url: 'https://first.example.com' },
+      { id: '11', title: 'Second Visit', url: 'https://second.example.com' },
+    ])
+    mock.history.onVisited.__emit({ id: '11', url: 'https://second.example.com' })
+    await flushAsync()
+
+    cached = mock.storage.local.__store['scauta:history-index-cache'] as
+      | { documents: { id: string }[] }
+      | undefined
+    expect(cached?.documents.map((d) => d.id).sort()).toEqual(['history:10', 'history:11'])
+
+    const listener = getMessageListener(mock)
+    const response = await new Promise<GetDocumentsResponse>((resolve) => {
+      listener({ type: 'scauta:get-documents' }, {}, (response) => resolve(response as GetDocumentsResponse))
+    })
+    expect(response.historyDocuments.map((d) => d.id).sort()).toEqual(['history:10', 'history:11'])
+  })
+
   it('creates a new tab on scauta:open-bookmark for a fresh URL, and records usage history', async () => {
     const mock = await loadBackground()
     mock.bookmarks.__setTree(sampleTree())

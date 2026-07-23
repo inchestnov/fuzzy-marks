@@ -40,8 +40,10 @@ Grafana dashboard" to the tab being open, in as few keystrokes as possible.
   glance.
 - **Keyboard-only.** Open with a global shortcut, type, move with `↑`/`↓`,
   open with `Enter`, dismiss with `Esc`. No mouse required at any step.
-- **Live index.** The background service worker rebuilds the search index
-  whenever bookmarks are added, removed, edited, or moved — no manual refresh.
+- **Live index.** The background service worker rebuilds the bookmark index
+  whenever bookmarks are added, removed, edited, or moved, and the history
+  index whenever you visit or delete a page — no manual refresh, and no need
+  to reopen the popup for a just-visited page to become searchable.
 - **Light and dark themes**, plus a "system" mode that follows the OS.
 - **No external storage.** No server, no account, no sync service. The only
   persisted state is local: your settings, usage history, and a cached copy
@@ -142,8 +144,9 @@ Open Settings from the gear icon in the top-right of the search popup.
   link out to `chrome://extensions/shortcuts` to change it.
 - **Search browsing history** — toggles whether `chrome.history` entries are
   included as a search source alongside bookmarks. On by default. History
-  data never leaves the browser — it's only read locally to build the
-  in-popup search index, the same way bookmarks are.
+  data never leaves the browser — it's only read locally to build the search
+  index, the same way bookmarks are, and kept current in the background as
+  you browse.
 - **Track usage history** — toggles whether opening a result affects future
   ranking. Turning it off stops recording new opens; it does not erase what's
   already stored.
@@ -213,7 +216,7 @@ Path alias `@/*` maps to `src/*` (configured in both `tsconfig.json` and
 npm run test
 ```
 
-48 tests across 6 files, all passing. Unit tests (`tests/unit/`) cover the
+49 tests across 6 files, all passing. Unit tests (`tests/unit/`) cover the
 ranking tiers and usage-boost math (`ranking.test.ts`), the bookmark tree
 flattening logic (`collector.test.ts`), and the search engine's
 tokenization/limit/ordering behavior against the spec's own examples
@@ -221,8 +224,9 @@ tokenization/limit/ordering behavior against the spec's own examples
 the bookmark-collection-to-search pipeline end-to-end
 (`bookmarks-flow.test.ts`), browsing-history collection merged with
 bookmarks into one id-collision-free searchable set
-(`history-flow.test.ts`), and the background service worker's index
-lifecycle, message handling, and tab focus-or-open logic
+(`history-flow.test.ts`), and the background service worker's bookmark and
+history index lifecycles (including rebuild-on-visit), message handling,
+and tab focus-or-open logic
 (`background.test.ts`), all against the in-memory `chrome.*` API mock in
 `tests/mocks/chrome.ts` — no real browser required.
 

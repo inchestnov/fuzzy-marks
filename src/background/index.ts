@@ -1,43 +1,68 @@
 import { collectBookmarks } from '@/bookmarks/collector'
-import { getCachedIndex, setCachedIndex, recordBookmarkOpen } from '@/storage'
-import type { GetDocumentsResponse, ScautaMessage } from '@/types'
+import { collectHistory } from '@/history/collector'
+import {
+  getCachedIndex,
+  setCachedIndex,
+  getCachedHistoryIndex,
+  setCachedHistoryIndex,
+  recordBookmarkOpen,
+} from '@/storage'
+import type { BookmarkDocument, GetDocumentsResponse, ScautaMessage } from '@/types'
 
 /**
- * The background service worker is the single owner of the bookmark index:
- * it rebuilds it whenever bookmarks change and keeps it cached in
- * chrome.storage.local so the popup can read it instantly on open
- * (Manifest V3 service workers are ephemeral, so we can't rely on an
- * in-memory singleton surviving between popup opens).
+ * The background service worker is the single owner of both the bookmark
+ * index and the history index: each is rebuilt whenever its source changes
+ * (bookmarks.on* / history.onVisited & onVisitRemoved) and cached in
+ * chrome.storage.local so the popup can read it instantly on open (MV3
+ * service workers are ephemeral, so nothing can live only in memory between
+ * popup opens). Both indices follow the exact same rebuild/cache/serve
+ * shape, so it's factored into one helper used twice.
  */
-let rebuildInFlight: Promise<void> | null = null
+function createIndexOwner(
+  collect: () => Promise<BookmarkDocument[]>,
+  getCache: () => Promise<{ documents: BookmarkDocument[] } | undefined>,
+  setCache: (documents: BookmarkDocument[]) => Promise<void>,
+) {
+  let rebuildInFlight: Promise<void> | null = null
 
-async function rebuildIndex(): Promise<void> {
-  const documents = await collectBookmarks()
-  await setCachedIndex(documents)
-}
+  function scheduleRebuild(): void {
+    rebuildInFlight = collect()
+      .catch(() => [])
+      .then((documents) => setCache(documents))
+      .finally(() => {
+        rebuildInFlight = null
+      })
+  }
 
-function scheduleRebuild(): void {
-  rebuildInFlight = rebuildIndex().finally(() => {
-    rebuildInFlight = null
-  })
-}
-
-async function ensureIndex(): Promise<GetDocumentsResponse> {
-  if (rebuildInFlight) {
-    await rebuildInFlight
-  } else {
-    const cached = await getCachedIndex()
-    if (!cached) {
+  async function ensure(): Promise<BookmarkDocument[]> {
+    if (rebuildInFlight) {
+      await rebuildInFlight
+    } else if (!(await getCache())) {
       scheduleRebuild()
       await rebuildInFlight
     }
+    const cache = await getCache()
+    return cache?.documents ?? []
   }
-  const cache = await getCachedIndex()
-  return { documents: cache?.documents ?? [] }
+
+  return { scheduleRebuild, ensure }
 }
 
-chrome.runtime.onInstalled.addListener(() => scheduleRebuild())
-chrome.runtime.onStartup.addListener(() => scheduleRebuild())
+const bookmarkIndex = createIndexOwner(collectBookmarks, getCachedIndex, setCachedIndex)
+const historyIndex = createIndexOwner(collectHistory, getCachedHistoryIndex, setCachedHistoryIndex)
+
+async function ensureAll(): Promise<GetDocumentsResponse> {
+  const [documents, historyDocuments] = await Promise.all([bookmarkIndex.ensure(), historyIndex.ensure()])
+  return { documents, historyDocuments }
+}
+
+function scheduleRebuildAll(): void {
+  bookmarkIndex.scheduleRebuild()
+  historyIndex.scheduleRebuild()
+}
+
+chrome.runtime.onInstalled.addListener(scheduleRebuildAll)
+chrome.runtime.onStartup.addListener(scheduleRebuildAll)
 
 for (const event of [
   chrome.bookmarks.onCreated,
@@ -46,7 +71,14 @@ for (const event of [
   chrome.bookmarks.onMoved,
   chrome.bookmarks.onImportEnded,
 ]) {
-  event.addListener(() => scheduleRebuild())
+  event.addListener(() => bookmarkIndex.scheduleRebuild())
+}
+
+// A new tab navigating to a page fires onVisited; onVisitRemoved covers the
+// user (or "Clear browsing data") deleting entries. Together these keep the
+// history index current without polling or refetching on every popup open.
+for (const event of [chrome.history.onVisited, chrome.history.onVisitRemoved]) {
+  event.addListener(() => historyIndex.scheduleRebuild())
 }
 
 async function openBookmarkTab(url: string): Promise<void> {
@@ -65,14 +97,12 @@ async function openBookmarkTab(url: string): Promise<void> {
 chrome.runtime.onMessage.addListener((message: ScautaMessage, _sender, sendResponse) => {
   switch (message.type) {
     case 'scauta:get-documents': {
-      void ensureIndex().then(sendResponse)
+      void ensureAll().then(sendResponse)
       return true
     }
     case 'scauta:refresh-index': {
-      scheduleRebuild()
-      void (rebuildInFlight ?? Promise.resolve())
-        .then(() => getCachedIndex())
-        .then((cache) => sendResponse({ documents: cache?.documents ?? [] }))
+      scheduleRebuildAll()
+      void ensureAll().then(sendResponse)
       return true
     }
     case 'scauta:record-open': {
@@ -90,4 +120,4 @@ chrome.runtime.onMessage.addListener((message: ScautaMessage, _sender, sendRespo
   }
 })
 
-void ensureIndex()
+void ensureAll()

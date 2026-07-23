@@ -65,6 +65,8 @@ export interface ChromeMock {
   }
   history: {
     search: Mock<[{ text: string; startTime?: number; maxResults?: number }], Promise<MockHistoryItem[]>>
+    onVisited: ReturnType<typeof createEvent>
+    onVisitRemoved: ReturnType<typeof createEvent>
     __setItems: (items: MockHistoryItem[]) => void
   }
 }
@@ -134,6 +136,8 @@ export function installChromeMock(): ChromeMock {
     },
     history: {
       search: vi.fn(async (_query: { text: string; startTime?: number; maxResults?: number }) => historyItems),
+      onVisited: createEvent(),
+      onVisitRemoved: createEvent(),
       __setItems: (items: MockHistoryItem[]) => {
         historyItems = items
       },

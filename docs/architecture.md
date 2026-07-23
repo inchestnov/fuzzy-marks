@@ -41,29 +41,44 @@ pieces fit together.
 
 ### Background service worker (`src/background/index.ts`)
 
-The service worker is the single owner of the bookmark index. It:
+The service worker is the single owner of **two** indices — bookmarks and
+browsing history — built and cached the same way via one `createIndexOwner`
+factory instantiated twice:
 
-- Calls `collectBookmarks()` to rebuild the index on `chrome.runtime.onInstalled`,
-  `onStartup`, and every `chrome.bookmarks.on{Created,Removed,Changed,Moved,ImportEnded}`
-  event, and caches the result in `chrome.storage.local` via `setCachedIndex`.
-- Serves the cached index to the popup on request (`scauta:get-documents`),
-  rebuilding first if no cache exists yet.
-- Handles `scauta:refresh-index` for an explicit forced rebuild.
-- Handles `scauta:record-open`, writing a usage entry (count + last-used
-  timestamp) to `chrome.storage.local`.
-- Handles `scauta:open-bookmark`, which records the usage entry *and* opens
-  the URL — focusing an existing tab with a matching URL via `chrome.tabs.query`
-  + `chrome.tabs.update` + `chrome.windows.update` if one exists, or creating a
+- The bookmark index rebuilds via `collectBookmarks()` on
+  `chrome.runtime.onInstalled`, `onStartup`, and every
+  `chrome.bookmarks.on{Created,Removed,Changed,Moved,ImportEnded}` event, and
+  is cached via `setCachedIndex`.
+- The history index rebuilds via `collectHistory()` on the same
+  install/startup events, plus `chrome.history.onVisited` (fires on
+  essentially every page visit in any tab) and `chrome.history.onVisitRemoved`
+  (fires when entries are deleted, e.g. via "Clear browsing data"), and is
+  cached via `setCachedHistoryIndex`. This is what makes newly-visited pages
+  searchable without ever having opened the popup — an earlier version
+  fetched history directly from the popup on every open instead, which meant
+  a page visited while the popup happened to be closed (the common case)
+  wasn't reflected until the fetch ran again, and there was no way to notice
+  it had gone stale in between. Owning it the same way bookmarks already are
+  removes that gap entirely.
+- Both indices are served together to the popup on request
+  (`scauta:get-documents` → `{ documents, historyDocuments }`), each
+  rebuilding first if its cache doesn't exist yet.
+- `scauta:refresh-index` forces a rebuild of both.
+- `scauta:record-open` writes a usage entry (count + last-used timestamp) to
+  `chrome.storage.local`.
+- `scauta:open-bookmark` records the usage entry *and* opens the URL —
+  focusing an existing tab with a matching URL via `chrome.tabs.query` +
+  `chrome.tabs.update` + `chrome.windows.update` if one exists, or creating a
   new tab otherwise.
 
 MV3 service workers are ephemeral — Chrome can and will kill them between
 events, so nothing can be safely kept only in memory across popup opens. That
-is why the index is persisted to `chrome.storage.local` rather than held in a
-module-level variable: every `scauta:get-documents` call can be served
+is why each index is persisted to `chrome.storage.local` rather than held in
+a module-level variable: every `scauta:get-documents` call can be served
 correctly whether the worker has been running for hours or was just spun up
-to handle this one message. A `rebuildInFlight` promise is kept in memory
-purely to de-duplicate concurrent rebuild requests within a single worker
-lifetime, not as a cache.
+to handle this one message. Each `createIndexOwner` instance keeps its own
+`rebuildInFlight` promise in memory purely to de-duplicate concurrent rebuild
+requests within a single worker lifetime, not as a cache.
 
 ### Bookmark Collector (`src/bookmarks/collector.ts`)
 
@@ -122,12 +137,13 @@ something else.
 
 ### Storage (`src/storage/index.ts`)
 
-A thin wrapper around `chrome.storage.local` with three concerns, each under
-its own key (`scauta:settings`, `scauta:usage`, `scauta:index-cache`):
-settings, usage history, and the cached document index. The search query
-itself is intentionally *not* persisted — the popup always opens with an
-empty search box (see Popup UI below) — so there is no last-query key. No
-other module touches `chrome.storage` directly.
+A thin wrapper around `chrome.storage.local` with four concerns, each under
+its own key (`scauta:settings`, `scauta:usage`, `scauta:index-cache`,
+`scauta:history-index-cache`): settings, usage history, the cached bookmark
+index, and the cached history index. The search query itself is
+intentionally *not* persisted — the popup always opens with an empty search
+box (see Popup UI below) — so there is no last-query key. No other module
+touches `chrome.storage` directly.
 
 ### Popup UI (`src/popup/`, `src/components/`)
 
@@ -180,11 +196,12 @@ on every keystroke and waiting for a response — was rejected because:
   boundary the way you would for, say, an authenticated API.
 
 The background worker's job is narrower and more durable: stay the single
-source of truth for *when* the index needs rebuilding (it's the only context
-that can subscribe to `chrome.bookmarks.on*` events continuously) and persist
-it so a freshly-opened popup — or a freshly-woken worker — can serve it
-without recomputing anything. Search itself doesn't need that durability; it
-just needs the current document set, which `scauta:get-documents` provides.
+source of truth for *when* each index needs rebuilding (it's the only context
+that can subscribe to `chrome.bookmarks.on*` and `chrome.history.onVisited`/
+`onVisitRemoved` events continuously) and persist the result so a
+freshly-opened popup — or a freshly-woken worker — can serve it without
+recomputing anything. Search itself doesn't need that durability; it just
+needs the current document set, which `scauta:get-documents` provides.
 
 ## Message protocol
 
@@ -195,10 +212,10 @@ listener returns `true` and calls `sendResponse` asynchronously):
 
 | Message | Sent by | Response | Purpose |
 | --- | --- | --- | --- |
-| `scauta:get-documents` | Popup, on mount | `{ documents }` | Fetch the current cached index, rebuilding first if none exists yet |
-| `scauta:refresh-index` | Popup (not currently wired to any UI action) | `{ documents }` | Force a rebuild and return the fresh result |
-| `scauta:record-open` | Popup | `{ ok: true }` | Bump a bookmark's usage count/recency without opening a tab |
-| `scauta:open-bookmark` | Popup, on Enter/click | `{ ok: true }` | Record usage and open (or focus) the bookmark's tab |
+| `scauta:get-documents` | Popup, on mount | `{ documents, historyDocuments }` | Fetch both current cached indices, rebuilding either first if its cache doesn't exist yet |
+| `scauta:refresh-index` | Popup (not currently wired to any UI action) | `{ documents, historyDocuments }` | Force a rebuild of both indices and return the fresh result |
+| `scauta:record-open` | Popup | `{ ok: true }` | Bump a result's usage count/recency without opening a tab |
+| `scauta:open-bookmark` | Popup, on Enter/click | `{ ok: true }` | Record usage and open (or focus) the result's tab |
 
 `src/popup/scautaClient.ts` is the only place in the popup layer that calls
 `chrome.runtime.sendMessage` — all four message types are wrapped as typed
