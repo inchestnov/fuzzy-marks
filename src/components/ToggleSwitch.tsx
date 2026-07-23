@@ -1,10 +1,10 @@
-interface ToggleProps {
+interface ToggleSwitchProps {
   checked: boolean
   onChange: (checked: boolean) => void
   ariaLabel: string
 }
 
-export function Toggle({ checked, onChange, ariaLabel }: ToggleProps) {
+export function ToggleSwitch({ checked, onChange, ariaLabel }: ToggleSwitchProps) {
   return (
     <button
       type="button"
@@ -12,12 +12,12 @@ export function Toggle({ checked, onChange, ariaLabel }: ToggleProps) {
       aria-checked={checked}
       aria-label={ariaLabel}
       onClick={() => onChange(!checked)}
-      className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${
+      className={`relative h-5 w-9 shrink-0 rounded-full transition-colors duration-150 ${
         checked ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-border)]'
       }`}
     >
       <span
-        className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${
+        className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-150 ${
           checked ? 'translate-x-4' : 'translate-x-0'
         }`}
       />

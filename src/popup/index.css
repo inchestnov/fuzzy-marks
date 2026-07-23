@@ -2,28 +2,34 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Scauta's own palette: cool neutral surfaces (not Raycast's warm
+ * cream/near-black) with a muted "trail green" accent — a nod to the
+ * Scout/trail-marker origin of the name, and deliberately not the
+ * red/orange most command-palette tools reach for.
+ */
 :root {
   color-scheme: light;
-  --color-bg: #faf8f5;
-  --color-surface: #f1ede7;
-  --color-surface-selected: #fbe4d4;
-  --color-border: #e6e0d7;
-  --color-text: #211f1c;
-  --color-text-muted: #7a7269;
-  --color-accent: #e2632a;
-  --color-accent-soft: #f2b190;
+  --color-bg: #f8f9fa;
+  --color-surface: #eff1f3;
+  --color-surface-selected: #e3f1eb;
+  --color-border: #e1e3e7;
+  --color-text: #16181d;
+  --color-text-muted: #6b7078;
+  --color-accent: #2f8f5b;
+  --color-accent-soft: #bfe3d2;
 }
 
 .dark {
   color-scheme: dark;
-  --color-bg: #1c1b1a;
-  --color-surface: #242220;
-  --color-surface-selected: #2f2823;
-  --color-border: #34302c;
-  --color-text: #f2ede6;
-  --color-text-muted: #948b80;
-  --color-accent: #ff7a45;
-  --color-accent-soft: #4a2f22;
+  --color-bg: #17181c;
+  --color-surface: #212227;
+  --color-surface-selected: #1e2e27;
+  --color-border: #2b2d33;
+  --color-text: #edeef0;
+  --color-text-muted: #8b8f98;
+  --color-accent: #4fbe8f;
+  --color-accent-soft: #1e3b30;
 }
 
 html,
@@ -33,8 +39,8 @@ body {
 }
 
 #root {
-  width: 600px;
-  height: 420px;
+  width: 640px;
+  height: 480px;
   overflow: hidden;
   background: var(--color-bg);
   color: var(--color-text);
@@ -46,6 +52,8 @@ body {
     sans-serif;
 }
 
+/* Reserved for literal key-cap glyphs (Kbd) — not used for body content,
+   so the interface doesn't read as an IDE/code palette. */
 .font-data {
   font-family:
     ui-monospace,

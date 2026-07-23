@@ -1,8 +1,10 @@
 # Scauta
 
-Instant fuzzy search over your browser bookmarks. Press a shortcut, type a few
-letters, hit Enter, land on the page. A Raycast/Spotlight-style launcher for
-the bookmarks you already have.
+Instant fuzzy search over your browser bookmarks and history. Press a
+shortcut, type a few letters, hit Enter, land on the page — a compact,
+keyboard-first search dialog with its own quiet visual identity: a cool
+neutral palette, a muted green accent, and a native-dialog feel rather than
+a command-palette one.
 
 ## Motivation
 
@@ -35,9 +37,10 @@ Grafana dashboard" to the tab being open, in as few keystrokes as possible.
   name match, but it will jump ahead of an equally-fuzzy competitor.
 - **Optionally searches browsing history too**, not just bookmarks — so a
   page you visited but never bookmarked is still one search away. On by
-  default; turn it off in Settings if you only want bookmarks. History
-  results are visually tagged so you can tell them apart from bookmarks at a
-  glance.
+  default; turn it off in Settings if you only want bookmarks. Every result
+  explicitly says where it came from — "Bookmark" with its folder path, or
+  "History" with a relative time like "2 minutes ago" or "Yesterday" — so
+  you always know at a glance.
 - **Keyboard-only.** Open with a global shortcut, type, move with `↑`/`↓`,
   open with `Enter`, dismiss with `Esc`. No mouse required at any step.
 - **Live index.** The background service worker rebuilds the bookmark index
@@ -139,13 +142,13 @@ handle it, and it works even if the service worker is asleep.
 
 Chrome does not let extensions reassign keyboard shortcuts programmatically.
 If you want a different combination, or the default conflicts with something
-else, open Settings inside Scauta (the gear icon) and use the **"Change in
-Chrome settings"** link, which takes you straight to
+else, open Settings inside Scauta (the gear icon in the footer) and use the
+**"Change in Chrome settings"** link, which takes you straight to
 `chrome://extensions/shortcuts`.
 
 ## Configuration
 
-Open Settings from the gear icon in the top-right of the search popup.
+Open Settings from the gear icon in the popup's footer.
 
 - **Shortcut** — read-only display of the currently bound shortcut, with a
   link out to `chrome://extensions/shortcuts` to change it.

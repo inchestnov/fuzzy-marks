@@ -1,8 +1,8 @@
 import type { SearchResult } from '@/types'
-import { ResultItem } from './ResultItem'
+import { SearchResultItem } from './SearchResultItem'
 import { EmptyState } from './EmptyState'
 
-interface ResultsListProps {
+interface SearchResultsProps {
   results: SearchResult[]
   selectedIndex: number
   hasQuery: boolean
@@ -11,22 +11,22 @@ interface ResultsListProps {
   onOpen: (index: number) => void
 }
 
-export function ResultsList({
+export function SearchResults({
   results,
   selectedIndex,
   hasQuery,
   hasDocuments,
   onSelect,
   onOpen,
-}: ResultsListProps) {
+}: SearchResultsProps) {
   if (results.length === 0) {
     return <EmptyState hasQuery={hasQuery} hasDocuments={hasDocuments} />
   }
 
   return (
-    <div className="flex-1 overflow-y-auto py-1">
+    <div className="flex-1 space-y-0.5 overflow-y-auto px-2 py-2">
       {results.map((result, index) => (
-        <ResultItem
+        <SearchResultItem
           key={result.document.id}
           document={result.document}
           selected={index === selectedIndex}

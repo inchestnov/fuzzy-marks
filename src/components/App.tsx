@@ -5,8 +5,8 @@ import { SearchEngine } from '@/search'
 import { getDocuments, openBookmark } from '@/popup/scautaClient'
 import { getSettings, saveSettings, getUsageHistory, clearUsageHistory } from '@/storage'
 import { useTheme } from '@/popup/useTheme'
-import { SearchBar } from './SearchBar'
-import { ResultsList } from './ResultsList'
+import { SearchInput } from './SearchInput'
+import { SearchResults } from './SearchResults'
 import { Footer } from './Footer'
 import { SettingsPanel } from './SettingsPanel'
 
@@ -125,9 +125,9 @@ export function App() {
   }
 
   return (
-    <div className="flex h-full flex-col">
-      <SearchBar value={query} onChange={setQuery} onSettingsClick={() => setView('settings')} />
-      <ResultsList
+    <div className="flex h-full animate-fade-in flex-col">
+      <SearchInput value={query} onChange={setQuery} />
+      <SearchResults
         results={results}
         selectedIndex={selectedIndex}
         hasQuery={query.trim().length > 0}
@@ -135,7 +135,7 @@ export function App() {
         onSelect={setSelectedIndex}
         onOpen={openResult}
       />
-      <Footer resultCount={results.length} />
+      <Footer resultCount={results.length} onSettingsClick={() => setView('settings')} />
     </div>
   )
 }

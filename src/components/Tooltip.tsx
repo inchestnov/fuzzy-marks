@@ -1,4 +1,4 @@
-export function InfoTooltip({ text }: { text: string }) {
+export function Tooltip({ text }: { text: string }) {
   return (
     <span className="group relative inline-flex normal-case">
       <span

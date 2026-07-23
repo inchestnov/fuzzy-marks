@@ -147,27 +147,77 @@ touches `chrome.storage` directly.
 
 ### Popup UI (`src/popup/`, `src/components/`)
 
-A fixed 600×420 React app rendered inside the extension's action popup.
+A fixed 640×480 React app rendered inside the extension's action popup.
 `App.tsx` owns all state (documents, usage, settings, current query, selected
-index, search vs. settings view) and wires together `SearchBar`,
-`ResultsList` (which renders `ResultItem` + `Favicon`, or `EmptyState` when
-there's nothing to show), `Footer`, and `SettingsPanel`. Keyboard handling
-(`↑`/`↓`/`Enter`/`Esc`) is a single `keydown` listener on `window` in `App.tsx`
-rather than being spread across child components.
+index, search vs. settings view) and wires together `SearchInput`,
+`SearchResults` (which renders `SearchResultItem` + `Favicon`, or
+`EmptyState` when there's nothing to show), `Footer`, and `SettingsPanel`.
+`SettingsPanel` in turn composes smaller, independently reusable pieces —
+`ToggleSwitch`, `Tooltip`, `ShortcutEditor` — rather than inlining their
+markup. Keyboard handling (`↑`/`↓`/`Enter`/`Esc`) is a single `keydown`
+listener on `window` in `App.tsx` rather than being spread across child
+components.
 
 The query `useState` initializes to `''` and is never read from or written
 to storage, so every popup open — the whole point of the shortcut being a
 quick in-and-out interaction — starts from a blank search box rather than
 whatever was typed last time.
 
-Theming is CSS-variable based (`src/popup/index.css`): a light and a dark
-palette, both built around a warm off-white/near-black background rather than
-pure black, with a warm orange accent (`--color-accent`, `#e2632a` light /
-`#ff7a45` dark) used for the selected-row left border, active breadcrumb
-text, and interactive accents. `useTheme.ts` toggles a `.dark` class on
-`<html>` based on the `theme` setting, tracking `prefers-color-scheme` live
-when set to "system". URLs and folder breadcrumbs use a monospace stack
-(`.font-data`) to visually distinguish data from titles.
+### Visual identity
+
+The UI was deliberately redesigned away from the command-palette look
+(Raycast/Spotlight-style: warm cream-or-near-black panel, single bright
+accent, monospace everywhere, a flush full-height selection bar) toward
+something closer to a native system dialog:
+
+- **Cool neutral palette, not warm.** `src/popup/index.css` defines a light
+  and dark theme, both built on cool grays (`--color-bg`, `--color-surface`,
+  `--color-border`) rather than the cream/near-black pairing command
+  palettes tend to default to.
+- **A muted "trail green" accent** (`--color-accent`, `#2f8f5b` light /
+  `#4fbe8f` dark) instead of the red/orange most launcher UIs reach for —
+  a quiet nod to Scauta/Scout's trail-marker origin story, used sparingly
+  (toggles, the active theme button, links) rather than as a dominant color.
+- **Inset, rounded result rows** instead of flush full-bleed rows with a
+  hard left border: `SearchResults` pads its container and gives each
+  `SearchResultItem` its own `rounded-lg`, so the selected state reads as a
+  soft highlighted card, not a straight command-palette bar. The one accent
+  detail that remains — a thin vertical bar — is short and rounded, inset
+  from the row's top/bottom edges rather than flush against them, and
+  fades in/out with a color and opacity transition instead of appearing
+  instantly.
+- **No monospace outside literal key caps.** URLs, paths, and history
+  timestamps use the regular system font; `.font-data` (still a monospace
+  stack) is reserved for `Kbd`, which renders literal keyboard glyphs
+  (shortcut badges, the `↵`/`esc` hints) — using a "code font" for actual
+  page content is what made the previous look read as an IDE command
+  palette.
+- **A three-size type scale.** Every piece of text in the popup is 14px
+  (titles, input text, settings row labels), 12px (secondary metadata —
+  source/time, URLs, buttons), or 11px (section eyebrows, footer text, key
+  glyphs) — no other sizes appear anywhere in `src/components`.
+- **Explicit result provenance.** Spec section calls for always showing
+  whether a result came from bookmarks or history, not just implying it via
+  layout. `SearchResultItem`'s `describeSource()` renders "Bookmark" (plus
+  the folder breadcrumb, if any) or "History" (plus a relative time from
+  the new `formatRelativeTime()` helper — "2 minutes ago", "Yesterday", "3
+  days ago") — always in the same muted secondary color as the URL, per
+  spec, never accent-tinted, so it stays informative without competing
+  with the title.
+- **Settings lives in the footer, not the search bar.** The gear icon moved
+  from the top search row into `Footer`, alongside the result count and
+  (if bound) the current shortcut rendered as `Kbd` badges — keeping the
+  search row itself down to just the icon and the input.
+- **Short, targeted animations.** `animate-fade-in` (Tailwind, ~140ms) plays
+  once on the popup's root content and again when switching into
+  `SettingsPanel`; `animate-row-in` (~100ms) plays per result row. Neither
+  the popup's native open/close nor exiting the popup can be animated —
+  those are drawn by Chrome itself, not by this React tree — so animation
+  is scoped to what's actually inside our control: content appearing and
+  the selection changing.
+
+`useTheme.ts` toggles a `.dark` class on `<html>` based on the `theme`
+setting, tracking `prefers-color-scheme` live when set to "system".
 
 ## Why search runs in the popup, not the background worker
 
