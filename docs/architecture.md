@@ -178,6 +178,11 @@ something closer to a native system dialog:
   `#4fbe8f` dark) instead of the red/orange most launcher UIs reach for —
   a quiet nod to Scauta/Scout's trail-marker origin story, used sparingly
   (toggles, the active theme button, links) rather than as a dominant color.
+- **A rounded popup, not a hard rectangle.** `#root` (which fills the
+  entire action popup) has a 16px `border-radius` with `overflow: hidden`,
+  and `html`/`body` behind it are transparent so nothing shows through the
+  clipped corners — a small detail, but a hard-edged rectangle is part of
+  what read as a plain command-palette window.
 - **Inset, rounded result rows** instead of flush full-bleed rows with a
   hard left border: `SearchResults` pads its container and gives each
   `SearchResultItem` its own `rounded-lg`, so the selected state reads as a

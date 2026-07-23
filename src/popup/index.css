@@ -36,12 +36,14 @@ html,
 body {
   margin: 0;
   padding: 0;
+  background: transparent;
 }
 
 #root {
   width: 640px;
   height: 480px;
   overflow: hidden;
+  border-radius: 16px;
   background: var(--color-bg);
   color: var(--color-text);
   font-family:
