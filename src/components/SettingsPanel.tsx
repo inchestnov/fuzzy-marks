@@ -1,6 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ScautaSettings, ThemePreference } from '@/types'
-import { getConfiguredShortcut, openShortcutSettingsPage } from '@/shortcuts'
+import { getConfiguredShortcut, openShortcutSettingsPage, tokenizeShortcut } from '@/shortcuts'
+import { Kbd } from './Kbd'
+import { Toggle } from './Toggle'
+import { InfoTooltip } from './InfoTooltip'
 
 interface SettingsPanelProps {
   settings: ScautaSettings
@@ -15,12 +18,25 @@ const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
   { value: 'dark', label: 'Dark' },
 ]
 
+const CLEAR_CONFIRMATION_MS = 1500
+
 export function SettingsPanel({ settings, onChange, onClearHistory, onClose }: SettingsPanelProps) {
   const [shortcut, setShortcut] = useState('...')
+  const [cleared, setCleared] = useState(false)
+  const clearTimeoutRef = useRef<ReturnType<typeof setTimeout>>()
 
   useEffect(() => {
     void getConfiguredShortcut().then(setShortcut)
   }, [])
+
+  useEffect(() => () => clearTimeout(clearTimeoutRef.current), [])
+
+  function handleClearHistory() {
+    onClearHistory()
+    setCleared(true)
+    clearTimeout(clearTimeoutRef.current)
+    clearTimeoutRef.current = setTimeout(() => setCleared(false), CLEAR_CONFIRMATION_MS)
+  }
 
   return (
     <div className="flex h-full flex-col">
@@ -37,13 +53,16 @@ export function SettingsPanel({ settings, onChange, onClearHistory, onClose }: S
 
       <div className="flex-1 space-y-5 overflow-y-auto px-4 py-4">
         <section className="space-y-2">
-          <div className="text-[11px] uppercase tracking-wide text-[var(--color-text-muted)]">
+          <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-[var(--color-text-muted)]">
             Shortcut
+            <InfoTooltip text="Opens Scauta's search from anywhere in the browser." />
           </div>
           <div className="flex items-center justify-between">
-            <span className="font-data rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-[12px] text-[var(--color-text)]">
-              {shortcut}
-            </span>
+            <div className="flex items-center gap-1">
+              {tokenizeShortcut(shortcut).map((token, index) => (
+                <Kbd key={index}>{token}</Kbd>
+              ))}
+            </div>
             <button
               type="button"
               onClick={openShortcutSettingsPage}
@@ -54,30 +73,40 @@ export function SettingsPanel({ settings, onChange, onClearHistory, onClose }: S
           </div>
         </section>
 
-        <section className="space-y-2">
+        <section className="space-y-3">
           <div className="text-[11px] uppercase tracking-wide text-[var(--color-text-muted)]">
             Search
           </div>
-          <label className="flex items-center justify-between text-[13px] text-[var(--color-text)]">
-            Search browsing history
-            <input
-              type="checkbox"
+
+          <div className="flex items-center justify-between text-[13px] text-[var(--color-text)]">
+            <span className="flex items-center gap-1.5">
+              Search browsing history
+              <InfoTooltip text="Also match pages you've visited but never bookmarked, using your browser history." />
+            </span>
+            <Toggle
               checked={settings.searchHistoryEnabled}
-              onChange={(event) => onChange({ ...settings, searchHistoryEnabled: event.target.checked })}
-              className="h-4 w-4 accent-[var(--color-accent)]"
+              onChange={(checked) => onChange({ ...settings, searchHistoryEnabled: checked })}
+              ariaLabel="Search browsing history"
             />
-          </label>
-          <label className="flex items-center justify-between text-[13px] text-[var(--color-text)]">
-            Track usage history
-            <input
-              type="checkbox"
+          </div>
+
+          <div className="flex items-center justify-between text-[13px] text-[var(--color-text)]">
+            <span className="flex items-center gap-1.5">
+              Track usage history
+              <InfoTooltip text="Boost results you open often or recently, so they rank higher next time." />
+            </span>
+            <Toggle
               checked={settings.historyEnabled}
-              onChange={(event) => onChange({ ...settings, historyEnabled: event.target.checked })}
-              className="h-4 w-4 accent-[var(--color-accent)]"
+              onChange={(checked) => onChange({ ...settings, historyEnabled: checked })}
+              ariaLabel="Track usage history"
             />
-          </label>
-          <label className="flex items-center justify-between text-[13px] text-[var(--color-text)]">
-            Max results
+          </div>
+
+          <div className="flex items-center justify-between text-[13px] text-[var(--color-text)]">
+            <span className="flex items-center gap-1.5">
+              Max results
+              <InfoTooltip text="How many results to show at once, from 3 to 20." />
+            </span>
             <input
               type="number"
               min={3}
@@ -91,19 +120,31 @@ export function SettingsPanel({ settings, onChange, onClearHistory, onClose }: S
               }
               className="w-16 rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-right text-[13px] text-[var(--color-text)] outline-none"
             />
-          </label>
-          <button
-            type="button"
-            onClick={onClearHistory}
-            className="text-[12px] text-[var(--color-accent)] hover:underline"
-          >
-            Clear usage history
-          </button>
+          </div>
+
+          <div className="flex items-center justify-between pt-1">
+            <span className="flex items-center gap-1.5 text-[12px] text-[var(--color-text-muted)]">
+              Frequency and recency data used for ranking
+              <InfoTooltip text="Erases all recorded open counts and recency. Doesn't touch your bookmarks or browser history." />
+            </span>
+            <button
+              type="button"
+              onClick={handleClearHistory}
+              className={`rounded-md border px-3 py-1.5 text-[12px] transition-colors ${
+                cleared
+                  ? 'border-[var(--color-accent)] text-[var(--color-accent)]'
+                  : 'border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-surface)]'
+              }`}
+            >
+              {cleared ? 'Cleared ✓' : 'Clear usage history'}
+            </button>
+          </div>
         </section>
 
         <section className="space-y-2">
-          <div className="text-[11px] uppercase tracking-wide text-[var(--color-text-muted)]">
+          <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-[var(--color-text-muted)]">
             Theme
+            <InfoTooltip text="Match your system appearance, or force light/dark." />
           </div>
           <div className="flex gap-2">
             {THEME_OPTIONS.map((option) => (

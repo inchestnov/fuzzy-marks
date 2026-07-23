@@ -16,3 +16,16 @@ export async function getConfiguredShortcut(): Promise<string> {
 export function openShortcutSettingsPage(): void {
   void chrome.tabs.create({ url: 'chrome://extensions/shortcuts' })
 }
+
+/**
+ * Splits a chrome.commands shortcut string into individual key badges.
+ * Chrome formats this differently per platform — words joined by "+" on
+ * Windows/Linux ("Ctrl+Shift+E"), single modifier glyphs with no separator
+ * on macOS ("⇧⌘E") — so this matches either a modifier glyph or a run of
+ * alphanumeric characters, which covers both. Placeholder strings like
+ * "Not set" (no shortcut bound) are left as a single token.
+ */
+export function tokenizeShortcut(shortcut: string): string[] {
+  if (!/[+⇧⌘⌥⌃]/.test(shortcut)) return [shortcut]
+  return shortcut.match(/⇧|⌘|⌥|⌃|[A-Za-z0-9]+/g) ?? [shortcut]
+}
