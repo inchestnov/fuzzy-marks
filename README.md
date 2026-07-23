@@ -6,6 +6,48 @@ keyboard-first search dialog with its own quiet visual identity: a cool
 neutral palette, a muted green accent, and a native-dialog feel rather than
 a command-palette one.
 
+## Features
+
+- 🔍 **Fuzzy search across name, URL, and folder path.** A query like `kub graf`
+  matches "Grafana Production Dashboard" filed under `Development / Kubernetes`
+  even though neither word appears contiguously in the title — `kub` matches
+  the folder path, `graf` matches the name, and both are required.
+- 🔤 **Typo-tolerant.** `grafna` still finds "Grafana Production Dashboard".
+- 🥇 **Tiered ranking**, not a single opaque similarity score: exact name match
+  beats a name-prefix match, which beats a URL match, which beats a
+  path/folder match, which beats a fuzzy-only match. Nothing from a lower tier
+  can outrank a higher one, no matter how it scores on fuzzy similarity or
+  usage.
+- 📈 **Usage-aware.** Bookmarks you open often, or opened recently, are boosted
+  within their tier — a frequently used bookmark won't jump ahead of an exact
+  name match, but it will jump ahead of an equally-fuzzy competitor.
+- 🕓 **Optionally searches browsing history too**, not just bookmarks — so a
+  page you visited but never bookmarked is still one search away. On by
+  default; turn it off in Settings if you only want bookmarks. Every result
+  explicitly says where it came from — "Bookmark" with its folder path, or
+  "History" with a relative time like "2 minutes ago" or "Yesterday" — so
+  you always know at a glance.
+- ⌨️ **Keyboard-only.** Open with a global shortcut, type, move with `↑`/`↓`,
+  open with `Enter`, dismiss with `Esc`. No mouse required at any step.
+- 🔄 **Live index.** The background service worker rebuilds the bookmark index
+  whenever bookmarks are added, removed, edited, or moved, and the history
+  index whenever you visit or delete a page — no manual refresh, and no need
+  to reopen the popup for a just-visited page to become searchable.
+- 🌓 **Light and dark themes**, plus a "system" mode that follows the OS.
+- 🔒 **No external storage.** No server, no account, no sync service. The only
+  persisted state is local: your settings, usage history, and a cached copy
+  of the index, all in `chrome.storage.local`.
+
+## Screenshots
+
+| Light | Dark |
+| --- | --- |
+| ![Search, light theme](docs/screenshots/search-light.png) | ![Search, dark theme](docs/screenshots/search-dark.png) |
+
+Query shown above is `kub graf`, matching "Grafana Production Dashboard"
+filed under `Bookmarks bar / Development / Kubernetes` — the exact example
+from the product spec.
+
 ## Motivation
 
 Bookmarks scale badly. A few hundred of them, organized into a few folders,
@@ -19,48 +61,6 @@ system and it doesn't keep its own copy of your bookmarks anywhere — the
 browser's bookmark tree stays the single source of truth. What Scauta adds is
 a fast, typo-tolerant, keyboard-only way to get from "I'm thinking of that
 Grafana dashboard" to the tab being open, in as few keystrokes as possible.
-
-## Features
-
-- **Fuzzy search across name, URL, and folder path.** A query like `kub graf`
-  matches "Grafana Production Dashboard" filed under `Development / Kubernetes`
-  even though neither word appears contiguously in the title — `kub` matches
-  the folder path, `graf` matches the name, and both are required.
-- **Typo-tolerant.** `grafna` still finds "Grafana Production Dashboard".
-- **Tiered ranking**, not a single opaque similarity score: exact name match
-  beats a name-prefix match, which beats a URL match, which beats a
-  path/folder match, which beats a fuzzy-only match. Nothing from a lower tier
-  can outrank a higher one, no matter how it scores on fuzzy similarity or
-  usage.
-- **Usage-aware.** Bookmarks you open often, or opened recently, are boosted
-  within their tier — a frequently used bookmark won't jump ahead of an exact
-  name match, but it will jump ahead of an equally-fuzzy competitor.
-- **Optionally searches browsing history too**, not just bookmarks — so a
-  page you visited but never bookmarked is still one search away. On by
-  default; turn it off in Settings if you only want bookmarks. Every result
-  explicitly says where it came from — "Bookmark" with its folder path, or
-  "History" with a relative time like "2 minutes ago" or "Yesterday" — so
-  you always know at a glance.
-- **Keyboard-only.** Open with a global shortcut, type, move with `↑`/`↓`,
-  open with `Enter`, dismiss with `Esc`. No mouse required at any step.
-- **Live index.** The background service worker rebuilds the bookmark index
-  whenever bookmarks are added, removed, edited, or moved, and the history
-  index whenever you visit or delete a page — no manual refresh, and no need
-  to reopen the popup for a just-visited page to become searchable.
-- **Light and dark themes**, plus a "system" mode that follows the OS.
-- **No external storage.** No server, no account, no sync service. The only
-  persisted state is local: your settings, usage history, and a cached copy
-  of the index, all in `chrome.storage.local`.
-
-## Screenshots
-
-| Light | Dark |
-| --- | --- |
-| ![Search, light theme](docs/screenshots/search-light.png) | ![Search, dark theme](docs/screenshots/search-dark.png) |
-
-Query shown above is `kub graf`, matching "Grafana Production Dashboard"
-filed under `Bookmarks bar / Development / Kubernetes` — the exact example
-from the product spec.
 
 ## Installation
 
@@ -226,7 +226,7 @@ Path alias `@/*` maps to `src/*` (configured in both `tsconfig.json` and
 npm run test
 ```
 
-49 tests across 6 files, all passing. Unit tests (`tests/unit/`) cover the
+50 tests across 6 files, all passing. Unit tests (`tests/unit/`) cover the
 ranking tiers and usage-boost math (`ranking.test.ts`), the bookmark tree
 flattening logic (`collector.test.ts`), and the search engine's
 tokenization/limit/ordering behavior against the spec's own examples
