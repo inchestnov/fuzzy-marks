@@ -29,20 +29,32 @@ function createIndexOwner(
     rebuildInFlight = collect()
       .catch(() => [])
       .then((documents) => setCache(documents))
+      // Swallow any storage-write failure too, so rebuildInFlight never
+      // settles rejected — a rejected in-flight promise would otherwise
+      // make every subsequent ensure() throw until the next rebuild event.
+      .catch(() => undefined)
       .finally(() => {
         rebuildInFlight = null
       })
   }
 
   async function ensure(): Promise<BookmarkDocument[]> {
-    if (rebuildInFlight) {
-      await rebuildInFlight
-    } else if (!(await getCache())) {
-      scheduleRebuild()
-      await rebuildInFlight
+    // Never lets a storage/collection failure reject this promise: the
+    // message handler always needs *a* response to send back, even a stale
+    // or empty one, or the popup's sendMessage() resolves to undefined and
+    // crashes trying to destructure/spread it (see scauta:get-documents).
+    try {
+      if (rebuildInFlight) {
+        await rebuildInFlight
+      } else if (!(await getCache())) {
+        scheduleRebuild()
+        await rebuildInFlight
+      }
+      const cache = await getCache()
+      return cache?.documents ?? []
+    } catch {
+      return []
     }
-    const cache = await getCache()
-    return cache?.documents ?? []
   }
 
   return { scheduleRebuild, ensure }
@@ -94,25 +106,43 @@ async function openBookmarkTab(url: string): Promise<void> {
   await chrome.tabs.create({ url })
 }
 
+const EMPTY_DOCUMENTS_RESPONSE: GetDocumentsResponse = { documents: [], historyDocuments: [] }
+
+/**
+ * sendResponse must always be called with a well-formed value, no matter
+ * what fails upstream. If a promise chain here rejects and sendResponse is
+ * never reached, chrome.runtime.sendMessage on the popup side resolves to
+ * `undefined` instead of rejecting, and code there that destructures/spreads
+ * the (expected) response object throws — which is exactly how a
+ * background-side failure surfaced as a popup-side crash before this guard
+ * existed. Every case therefore falls back to a safe default on failure
+ * rather than letting the promise chain die silently.
+ */
 chrome.runtime.onMessage.addListener((message: ScautaMessage, _sender, sendResponse) => {
   switch (message.type) {
     case 'scauta:get-documents': {
-      void ensureAll().then(sendResponse)
+      void ensureAll()
+        .catch(() => EMPTY_DOCUMENTS_RESPONSE)
+        .then(sendResponse)
       return true
     }
     case 'scauta:refresh-index': {
       scheduleRebuildAll()
-      void ensureAll().then(sendResponse)
+      void ensureAll()
+        .catch(() => EMPTY_DOCUMENTS_RESPONSE)
+        .then(sendResponse)
       return true
     }
     case 'scauta:record-open': {
-      void recordBookmarkOpen(message.bookmarkId).then(() => sendResponse({ ok: true }))
+      void recordBookmarkOpen(message.bookmarkId)
+        .catch(() => undefined)
+        .then(() => sendResponse({ ok: true }))
       return true
     }
     case 'scauta:open-bookmark': {
-      void Promise.all([recordBookmarkOpen(message.bookmarkId), openBookmarkTab(message.url)]).then(
-        () => sendResponse({ ok: true }),
-      )
+      void Promise.all([recordBookmarkOpen(message.bookmarkId), openBookmarkTab(message.url)])
+        .catch(() => undefined)
+        .then(() => sendResponse({ ok: true }))
       return true
     }
     default:

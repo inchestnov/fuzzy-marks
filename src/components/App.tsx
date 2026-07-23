@@ -31,8 +31,11 @@ export function App() {
         getSettings(),
         getUsageHistory(),
       ])
-      setBookmarkDocuments(docsResponse.documents)
-      setHistoryDocuments(docsResponse.historyDocuments)
+      // Defensive: chrome.runtime.sendMessage resolves to undefined (not a
+      // rejection) if the background listener never calls sendResponse, so
+      // docsResponse itself could in principle be malformed here.
+      setBookmarkDocuments(docsResponse?.documents ?? [])
+      setHistoryDocuments(docsResponse?.historyDocuments ?? [])
       setSettings(storedSettings)
       setUsage(history)
       setReady(true)

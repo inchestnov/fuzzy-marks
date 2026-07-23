@@ -118,6 +118,44 @@ describe('background service worker integration', () => {
     expect(response.documents.map((d) => d.id).sort()).toEqual(['2', '3'])
   })
 
+  it('still answers scauta:get-documents with a well-formed response if a storage write fails during rebuild', async () => {
+    // Regression test: a rejected rebuild used to leave sendResponse never
+    // called, so chrome.runtime.sendMessage on the popup side resolved to
+    // undefined instead of {documents, historyDocuments} - and App.tsx's
+    // `[...bookmarkDocuments, ...historyDocuments]` spread threw
+    // "TypeError: n is not iterable" trying to spread the missing field.
+    //
+    // background/index.ts also fires an initial `void ensureAll()` on
+    // module load, which schedules its own rebuild before this test even
+    // starts arming the failure - flushing first lets that settle so the
+    // mocked failure below applies to the rebuild *we* trigger, and the
+    // message is sent with no further flush in between so it lands while
+    // that rebuild is still in flight - the exact window in which the old
+    // code could leave sendResponse uncalled.
+    const mock = await loadBackground()
+    await flushAsync()
+    mock.bookmarks.__setTree(sampleTree())
+    mock.storage.local.set.mockImplementationOnce(async () => {
+      throw new Error('simulated storage failure')
+    })
+
+    mock.runtime.onInstalled.__emit()
+    const listener = getMessageListener(mock)
+
+    const response = await Promise.race([
+      new Promise<GetDocumentsResponse>((resolve) => {
+        listener({ type: 'scauta:get-documents' }, {}, (r) => resolve(r as GetDocumentsResponse))
+      }),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('sendResponse was never called (message port left hanging)')), 500),
+      ),
+    ])
+
+    expect(response).toBeDefined()
+    expect(Array.isArray(response.documents)).toBe(true)
+    expect(Array.isArray(response.historyDocuments)).toBe(true)
+  })
+
   it('builds the history index on install and rebuilds it when a page is visited', async () => {
     const mock = await loadBackground()
     mock.bookmarks.__setTree(sampleTree())
