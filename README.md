@@ -98,6 +98,13 @@ npm run build
 
 Then load the resulting `dist/` directory the same way (steps 1-4 above).
 
+After rebuilding, click the reload icon on Scauta's card in
+`chrome://extensions` (or toggle it off/on). This matters especially when a
+change adds a new permission (like `history`) — Chrome doesn't pick up
+manifest or background-script changes for an already-loaded unpacked
+extension until it's reloaded, so features tied to the new code (or
+permission) will silently act as if they're missing until you do.
+
 Scauta's icon appears in the toolbar either way. Pin it if you want it
 visible, though you'll normally never click it — the keyboard shortcut is
 the intended entry point.
