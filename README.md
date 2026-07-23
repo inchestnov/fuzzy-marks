@@ -21,18 +21,26 @@ a command-palette one.
 - 📈 **Usage-aware.** Bookmarks you open often, or opened recently, are boosted
   within their tier — a frequently used bookmark won't jump ahead of an exact
   name match, but it will jump ahead of an equally-fuzzy competitor.
-- 🕓 **Optionally searches browsing history too**, not just bookmarks — so a
-  page you visited but never bookmarked is still one search away. On by
-  default; turn it off in Settings if you only want bookmarks. Every result
-  explicitly says where it came from — "Bookmark" with its folder path, or
-  "History" with a relative time like "2 minutes ago" or "Yesterday" — so
-  you always know at a glance.
+- 🗂️ **Three search sources, each toggleable on its own** — bookmarks,
+  browsing history, and currently open tabs. A small row of round checkboxes
+  right under the search box (Bookmarks / History / Tabs) turns each one on
+  or off for the current search, so a page you visited but never bookmarked,
+  or a tab you already have open somewhere, is just as reachable as an actual
+  bookmark. Every result explicitly says where it came from — "Bookmark" with
+  its folder path, "History" with a relative time like "2 minutes ago", or
+  "Open tab" — so you always know at a glance.
 - ⌨️ **Keyboard-only.** Open with a global shortcut, type, move with `↑`/`↓`,
-  open with `Enter`, dismiss with `Esc`. No mouse required at any step.
+  open with `Enter` (or `Shift+Enter` for a new tab instead of reusing an
+  open one), dismiss with `Esc`. `Tab` cycles focus through the
+  Bookmarks/History/Tabs checkboxes so you can flip a source on or off
+  (`Enter` toggles whichever one is focused) without ever reaching for the
+  mouse.
 - 🔄 **Live index.** The background service worker rebuilds the bookmark index
   whenever bookmarks are added, removed, edited, or moved, and the history
-  index whenever you visit or delete a page — no manual refresh, and no need
-  to reopen the popup for a just-visited page to become searchable.
+  index whenever you visit or delete a page. Open tabs are read live on every
+  search instead of cached, since the set of open tabs changes far too often
+  to bother indexing — no manual refresh, and no need to reopen the popup for
+  a just-visited page or a freshly opened tab to become searchable.
 - 🌓 **Light and dark themes**, plus a "system" mode that follows the OS.
 - 🔒 **No external storage.** No server, no account, no sync service. The only
   persisted state is local: your settings, usage history, and a cached copy
@@ -44,9 +52,11 @@ a command-palette one.
 | --- | --- |
 | ![Search, light theme](docs/screenshots/search-light.png) | ![Search, dark theme](docs/screenshots/search-dark.png) |
 
-Query shown above is `kub graf`, matching "Grafana Production Dashboard"
-filed under `Bookmarks bar / Development / Kubernetes` — the exact example
-from the product spec.
+Query shown above is `kub graf`, matching across all three sources at
+once: an already-open tab ("Grafana Kubernetes Overview"), a history entry
+visited 15 minutes ago, and the bookmarked "Grafana Production Dashboard"
+filed under `Bookmarks bar / Development / Kubernetes` — the exact bookmark
+example from the product spec, now shown alongside the other two sources.
 
 ## Motivation
 
@@ -103,7 +113,7 @@ Then load the resulting `dist/` directory the same way (steps 1-4 above).
 
 After rebuilding, click the reload icon on Scauta's card in
 `chrome://extensions` (or toggle it off/on). This matters especially when a
-change adds a new permission (like `history`) — Chrome doesn't pick up
+change adds a new permission (like `history` or `tabs`) — Chrome doesn't pick up
 manifest or background-script changes for an already-loaded unpacked
 extension until it's reloaded, so features tied to the new code (or
 permission) will silently act as if they're missing until you do.
@@ -118,9 +128,16 @@ the intended entry point.
 2. Start typing. Results update as you type — no need to press Enter to
    search.
 3. Use `↑`/`↓` to move the selection, or hover with the mouse.
-4. Press `Enter` (or click) to open the selected bookmark. If it's already
-   open in a tab, Scauta focuses that tab instead of opening a duplicate.
+4. Press `Enter` (or click) to open the selected result in its current tab —
+   if it's already open somewhere, Scauta focuses that tab instead of opening
+   a duplicate. Press `Shift+Enter` to force it open in a brand new tab
+   instead.
 5. Press `Esc` at any point to close the popup without doing anything.
+
+Right under the search box, three round checkboxes — **Bookmarks**,
+**History**, **Tabs** — control which sources are searched. Press `Tab` to
+move keyboard focus between them (the row lights up while it has focus) and
+`Enter` to flip whichever one is focused; clicking works the same way.
 
 The search box always starts empty when you open Scauta — nothing is
 remembered between sessions, so there's nothing to clear before typing a new
@@ -133,7 +150,10 @@ query. When the search box is empty, results are ordered by usage
 | --- | --- |
 | `Ctrl+Shift+E` (Windows/Linux) / `Cmd+Shift+E` (macOS) | Open Scauta |
 | `↑` / `↓` | Move selection |
-| `Enter` | Open selected bookmark |
+| `Enter` | Open selected result in its current tab |
+| `Shift+Enter` | Open selected result in a new tab |
+| `Tab` | Move focus between the Bookmarks/History/Tabs checkboxes |
+| `Enter` (checkbox focused) | Toggle the focused source on/off |
 | `Esc` | Close the popup, or leave Settings |
 
 The open shortcut is registered as Chrome's `commands._execute_action`, which
@@ -142,21 +162,33 @@ handle it, and it works even if the service worker is asleep.
 
 Chrome does not let extensions reassign keyboard shortcuts programmatically.
 If you want a different combination, or the default conflicts with something
-else, open Settings inside Scauta (the gear icon in the footer) and use the
-**"Change in Chrome settings"** link, which takes you straight to
-`chrome://extensions/shortcuts`.
+else, open Settings inside Scauta (the gear icon next to the search box) and
+use the **"Change in Chrome settings"** link, which takes you straight to
+`chrome://extensions/shortcuts`. Settings also has a **Shortcuts** section
+listing this same table for quick reference inside the popup.
 
 ## Configuration
 
-Open Settings from the gear icon in the popup's footer.
+### Search sources
+
+Which sources are searched — **Bookmarks**, **History**, **Tabs** — is
+controlled from the main screen itself, via the row of checkboxes right
+under the search box (not from Settings), so it's a one-keystroke or
+one-click change you never have to leave the search view for. See
+[Usage](#usage) and [Keyboard shortcuts](#keyboard-shortcuts) above. History
+and tab data never leave the browser — they're only read locally to build
+the search index, the same way bookmarks are, and kept current as you
+browse (history) or read live on every search (tabs).
+
+### Settings
+
+Open Settings from the gear icon next to the search box.
 
 - **Shortcut** — read-only display of the currently bound shortcut, with a
   link out to `chrome://extensions/shortcuts` to change it.
-- **Search browsing history** — toggles whether `chrome.history` entries are
-  included as a search source alongside bookmarks. On by default. History
-  data never leaves the browser — it's only read locally to build the search
-  index, the same way bookmarks are, and kept current in the background as
-  you browse.
+- **Shortcuts** — a reference list of every keyboard shortcut (see
+  [Keyboard shortcuts](#keyboard-shortcuts)); informational only, nothing
+  here is configurable.
 - **Track usage history** — toggles whether opening a result affects future
   ranking. Turning it off stops recording new opens; it does not erase what's
   already stored.
@@ -164,18 +196,22 @@ Open Settings from the gear icon in the popup's footer.
 - **Clear usage history** — wipes all recorded frequency/recency data.
 - **Theme** — System, Light, or Dark.
 
-All settings are stored in `chrome.storage.local` and persist across browser
-restarts.
+All settings — including which search sources are enabled — are stored in
+`chrome.storage.local` and persist across browser restarts.
 
 ## Architecture
 
-Four independent pieces: a background service worker that owns the
-authoritative bookmark index, a bookmark collector that flattens the
-browser's bookmark tree into flat search documents, a Fuse.js-based search
-engine with a tiered ranking layer, and a React popup UI that runs search
-entirely client-side against a document set fetched once per popup open.
-`chrome.storage.local` is the only persistence layer, used for settings,
-usage history, and a cached copy of the index.
+A background service worker that owns the authoritative bookmark and history
+indexes, three source collectors that each normalize a different
+`chrome.*` API into the same flat document shape (bookmarks from
+`chrome.bookmarks.getTree()`, history from `chrome.history.search()`, open
+tabs from `chrome.tabs.query()`), a Fuse.js-based search engine with a
+tiered ranking layer, and a React popup UI that runs search entirely
+client-side against a document set fetched once per popup open. Bookmarks
+and history are rebuilt on change and cached; open tabs are read live on
+every request instead, since the set of open tabs changes far too often to
+be worth caching. `chrome.storage.local` is the only persistence layer, used
+for settings, usage history, and the cached bookmark/history indexes.
 
 See [`docs/architecture.md`](docs/architecture.md) for the full module graph,
 the message-passing protocol between the popup and the background worker,
@@ -201,6 +237,7 @@ scauta/
 │   ├── background/      # MV3 service worker: index lifecycle, message handling
 │   ├── bookmarks/       # chrome.bookmarks.getTree() -> BookmarkDocument[]
 │   ├── history/         # chrome.history.search() -> BookmarkDocument[], same shape as bookmarks
+│   ├── tabs/            # chrome.tabs.query({}) -> BookmarkDocument[], read live (not cached)
 │   ├── search/          # Fuse.js engine + ranking tiers
 │   ├── storage/         # chrome.storage.local wrapper
 │   ├── shortcuts/       # Reads the configured command, links to chrome://extensions/shortcuts
@@ -226,7 +263,7 @@ Path alias `@/*` maps to `src/*` (configured in both `tsconfig.json` and
 npm run test
 ```
 
-50 tests across 6 files, all passing. Unit tests (`tests/unit/`) cover the
+54 tests across 7 files, all passing. Unit tests (`tests/unit/`) cover the
 ranking tiers and usage-boost math (`ranking.test.ts`), the bookmark tree
 flattening logic (`collector.test.ts`), and the search engine's
 tokenization/limit/ordering behavior against the spec's own examples
@@ -234,7 +271,9 @@ tokenization/limit/ordering behavior against the spec's own examples
 the bookmark-collection-to-search pipeline end-to-end
 (`bookmarks-flow.test.ts`), browsing-history collection merged with
 bookmarks into one id-collision-free searchable set
-(`history-flow.test.ts`), and the background service worker's bookmark and
+(`history-flow.test.ts`), open-tab collection merged with bookmarks and
+history the same way, including id-collision safety
+(`tabs-flow.test.ts`), and the background service worker's bookmark and
 history index lifecycles (including rebuild-on-visit), message handling,
 and tab focus-or-open logic
 (`background.test.ts`), all against the in-memory `chrome.*` API mock in
@@ -248,8 +287,9 @@ and tab focus-or-open logic
   layer so other Chromium-based browsers (Edge, Brave) and Firefox's
   WebExtensions API can be supported without touching search, ranking, or UI
   code. The current codebase already isolates every `chrome.*` call to
-  `src/background`, `src/bookmarks`, `src/storage`, and `src/shortcuts`,
-  which is where that adapter boundary would be introduced — see
+  `src/background`, `src/bookmarks`, `src/history`, `src/tabs`,
+  `src/storage`, and `src/shortcuts`, which is where that adapter boundary
+  would be introduced — see
   [`docs/architecture.md`](docs/architecture.md#extension-points-for-other-browsers).
 - **Chrome Web Store listing** — not published yet; see
   [Installation](#installation) for the unpacked-extension workflow.
