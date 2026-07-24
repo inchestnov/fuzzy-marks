@@ -114,13 +114,35 @@ export function App() {
 
       if (view !== 'search') return
 
+      const focusOrder = [bookmarksCheckboxRef.current, historyCheckboxRef.current, tabsCheckboxRef.current]
+
       if (event.key === 'Tab') {
         event.preventDefault()
-        const focusOrder = [bookmarksCheckboxRef.current, historyCheckboxRef.current, tabsCheckboxRef.current]
         const currentIndex = focusOrder.findIndex((el) => el === document.activeElement)
         const step = event.shiftKey ? -1 : 1
         const nextIndex = (currentIndex + step + focusOrder.length) % focusOrder.length
         focusOrder[nextIndex]?.focus()
+        return
+      }
+
+      // Typing (including Backspace) while a source checkbox is focused
+      // (reached via Tab) should resume editing the search box instead of
+      // being swallowed by the checkbox — the user shouldn't have to click
+      // back into the input.
+      if (
+        focusOrder.includes(document.activeElement as HTMLInputElement | null) &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey &&
+        (event.key.length === 1 || event.key === 'Backspace')
+      ) {
+        event.preventDefault()
+        searchInputRef.current?.focus()
+        if (event.key === 'Backspace') {
+          setQuery((current) => current.slice(0, -1))
+        } else {
+          setQuery((current) => current + event.key)
+        }
         return
       }
 
