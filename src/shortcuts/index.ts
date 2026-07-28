@@ -20,8 +20,8 @@ export function openShortcutSettingsPage(): void {
 /**
  * Splits a chrome.commands shortcut string into individual key badges.
  * Chrome formats this differently per platform — words joined by "+" on
- * Windows/Linux ("Ctrl+Shift+E"), single modifier glyphs with no separator
- * on macOS ("⇧⌘E") — so this matches either a modifier glyph or a run of
+ * Windows/Linux ("Ctrl+E"), single modifier glyphs with no separator
+ * on macOS ("⌘E") — so this matches either a modifier glyph or a run of
  * alphanumeric characters, which covers both. Placeholder strings like
  * "Not set" (no shortcut bound) are left as a single token.
  */

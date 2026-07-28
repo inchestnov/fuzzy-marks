@@ -91,7 +91,7 @@ export function SettingsPanel({ settings, onChange, onClearHistory, onClose }: S
             <div className="flex items-center justify-between">
               <span>Open in new tab</span>
               <div className="flex items-center gap-1">
-                <Kbd>Shift</Kbd>
+                <Kbd>Ctrl</Kbd>
                 <Kbd>Enter</Kbd>
               </div>
             </div>

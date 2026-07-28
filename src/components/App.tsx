@@ -180,7 +180,7 @@ export function App() {
         setSelectedIndex((current) => (current - 1 + results.length) % results.length)
       } else if (event.key === 'Enter') {
         event.preventDefault()
-        openResult(selectedIndex, event.shiftKey)
+        openResult(selectedIndex, event.ctrlKey || event.metaKey)
       }
     }
 

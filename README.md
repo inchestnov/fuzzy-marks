@@ -30,8 +30,8 @@ a command-palette one.
   its folder path, "History" with a relative time like "2 minutes ago", or
   "Open tab" — so you always know at a glance.
 - ⌨️ **Keyboard-only.** Open with a global shortcut, type, move with `↑`/`↓`,
-  open with `Enter` (or `Shift+Enter` for a new tab instead of reusing an
-  open one), dismiss with `Esc`. `Tab` cycles focus through the
+  open with `Enter` (or `Ctrl+Enter`/`Cmd+Enter` for a new tab instead of
+  reusing an open one), dismiss with `Esc`. `Tab` cycles focus through the
   Bookmarks/History/Tabs checkboxes so you can flip a source on or off
   (`Enter` toggles whichever one is focused) without ever reaching for the
   mouse.
@@ -130,8 +130,8 @@ the intended entry point.
 3. Use `↑`/`↓` to move the selection, or hover with the mouse.
 4. Press `Enter` (or click) to open the selected result in its current tab —
    if it's already open somewhere, Scauta focuses that tab instead of opening
-   a duplicate. Press `Shift+Enter` to force it open in a brand new tab
-   instead.
+   a duplicate. Press `Ctrl+Enter` (or `Cmd+Enter` on macOS) to force it open
+   in a brand new tab instead.
 5. Press `Esc` at any point to close the popup without doing anything.
 
 Right under the search box, three round checkboxes — **Bookmarks**,
@@ -148,10 +148,10 @@ query. When the search box is empty, results are ordered by usage
 
 | Shortcut | Action |
 | --- | --- |
-| `Ctrl+Shift+E` (Windows/Linux) / `Cmd+Shift+E` (macOS) | Open Scauta |
+| `Ctrl+E` (Windows/Linux) / `Cmd+E` (macOS) | Open Scauta |
 | `↑` / `↓` | Move selection |
 | `Enter` | Open selected result in its current tab |
-| `Shift+Enter` | Open selected result in a new tab |
+| `Ctrl+Enter` / `Cmd+Enter` | Open selected result in a new tab |
 | `Tab` | Move focus between the Bookmarks/History/Tabs checkboxes |
 | `Enter` (checkbox focused) | Toggle the focused source on/off |
 | `Esc` | Close the popup, or leave Settings |
