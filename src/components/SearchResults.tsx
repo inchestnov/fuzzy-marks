@@ -4,6 +4,7 @@ import { EmptyState } from './EmptyState'
 
 interface SearchResultsProps {
   results: SearchResult[]
+  tokens: string[]
   selectedIndex: number
   hasQuery: boolean
   hasDocuments: boolean
@@ -13,6 +14,7 @@ interface SearchResultsProps {
 
 export function SearchResults({
   results,
+  tokens,
   selectedIndex,
   hasQuery,
   hasDocuments,
@@ -29,6 +31,7 @@ export function SearchResults({
         <SearchResultItem
           key={result.document.id}
           document={result.document}
+          tokens={tokens}
           selected={index === selectedIndex}
           onSelect={() => onSelect(index)}
           onOpen={() => onOpen(index)}

@@ -1,11 +1,14 @@
 import { useEffect, useRef } from 'react'
 import type { BookmarkDocument } from '@/types'
+import { matchRanges } from '@/search/highlight'
 import { Favicon } from './Favicon'
+import { HighlightedText } from './HighlightedText'
 import { Kbd } from './Kbd'
 import { formatRelativeTime } from './relativeTime'
 
 interface SearchResultItemProps {
   document: BookmarkDocument
+  tokens: string[]
   selected: boolean
   onSelect: () => void
   onOpen: () => void
@@ -24,7 +27,7 @@ function describeSource(document: BookmarkDocument): string {
   return breadcrumb ? `Bookmark · ${breadcrumb}` : 'Bookmark'
 }
 
-export function SearchResultItem({ document, selected, onSelect, onOpen }: SearchResultItemProps) {
+export function SearchResultItem({ document, tokens, selected, onSelect, onOpen }: SearchResultItemProps) {
   const ref = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
@@ -52,14 +55,14 @@ export function SearchResultItem({ document, selected, onSelect, onOpen }: Searc
       <Favicon url={document.url} />
       <div className="min-w-0 flex-1">
         <div className="truncate text-[14px] leading-tight text-[var(--color-text)]">
-          {document.name}
+          <HighlightedText text={document.name} ranges={matchRanges(document.name, tokens)} />
         </div>
         <div className="mt-0.5 flex min-w-0 items-baseline gap-2">
           <span className="shrink-0 truncate text-[12px] text-[var(--color-text-muted)]">
             {describeSource(document)}
           </span>
           <span className="min-w-0 truncate text-[12px] text-[var(--color-text-muted)] opacity-70">
-            {document.url}
+            <HighlightedText text={document.url} ranges={matchRanges(document.url, tokens)} />
           </span>
         </div>
       </div>

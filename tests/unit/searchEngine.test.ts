@@ -59,11 +59,67 @@ describe('SearchEngine', () => {
     expect(results[0].document.id).toBe('github-k8s-repo')
   })
 
-  it('tolerates a typo in "grafna" and still surfaces Grafana Production Dashboard', () => {
+  it('does NOT tolerate typos — "grafna" (no such substring) yields no results', () => {
     const engine = buildEngine()
-    const results = engine.search('grafna')
-    expect(results.length).toBeGreaterThan(0)
-    expect(results[0].document.id).toBe('grafana-prod')
+    expect(engine.search('grafna')).toHaveLength(0)
+  })
+
+  it('is case-insensitive for both query and document text', () => {
+    const engine = buildEngine()
+    const ids = engine.search('GRAFANA').map((r) => r.document.id)
+    expect(ids).toContain('grafana-prod')
+  })
+
+  it('requires query tokens to occur in the same order as typed ("g se pr" / "gi se pro")', () => {
+    const engine = new SearchEngine([
+      {
+        id: 'gibson-service',
+        name: 'Gibson Service Prod',
+        url: 'https://internal.example.com/g8f3',
+        path: 'Ops / Infra',
+        keywords: [],
+      },
+    ])
+    // Short, non-contiguous tokens still match as long as they occur in order,
+    // with any distance between them — that's the "fuzzy" part.
+    expect(engine.search('g se pr').map((r) => r.document.id)).toEqual(['gibson-service'])
+    expect(engine.search('gi se pro').map((r) => r.document.id)).toEqual(['gibson-service'])
+    // The text is "gibson service prod" (in that order) — reversing the query
+    // tokens must exclude the document rather than just re-rank it.
+    expect(engine.search('pr se g')).toHaveLength(0)
+  })
+
+  it('requires every token to be present (AND), excluding partial matches', () => {
+    const engine = buildEngine()
+    // "grafana" matches grafana-prod, but "handler" appears nowhere -> excluded.
+    expect(engine.search('grafana handler')).toHaveLength(0)
+  })
+
+  it('collapses runs of whitespace into token separators without empty tokens', () => {
+    const engine = buildEngine()
+    const tight = engine.search('kub graf').map((r) => r.document.id)
+    const loose = engine.search('  kub    graf  ').map((r) => r.document.id)
+    expect(loose).toEqual(tight)
+  })
+
+  it('matches tokens as substrings occurring in order anywhere in the combined text ("man ser ov")', () => {
+    const engine = new SearchEngine([
+      {
+        id: 'prod-manager',
+        name: '[prod] manager service overview',
+        url: 'https://example.com/prod',
+        path: 'Ops',
+        keywords: [],
+      },
+    ])
+    // Tokens occur in this order in the name field: manager, service, overview.
+    expect(engine.search('man ser ov').map((r) => r.document.id)).toEqual(['prod-manager'])
+    // "lu" is absent as a literal substring -> the whole row is dropped even
+    // though "s"/"ov" match.
+    expect(engine.search('lu s ov')).toHaveLength(0)
+    // Reversed order ("overview" before "service" before "manager" in the
+    // query) does not occur in that order in the text -> excluded.
+    expect(engine.search('ov ser man')).toHaveLength(0)
   })
 
   it('returns all documents ordered by usage (desc) then name when the query is empty', () => {

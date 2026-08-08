@@ -1,49 +1,58 @@
-import Fuse, { type IFuseOptions } from 'fuse.js'
 import type { BookmarkDocument, SearchResult, UsageHistory } from '@/types'
 import { rankScore, usageOnlyScore } from './ranking'
 
 /**
- * Fuse's extended-search AND (space = "all terms must match") is evaluated
- * per key, not across keys — so a query like "kub graf" would never match a
- * document where "kub" only appears in `path` and "graf" only in `name`.
- * We index a single combined field per document instead, so tokens can be
- * satisfied by any part of the document. `name` is repeated to bias Fuse's
- * internal similarity score toward name matches (tier ranking in ranking.ts
- * still does the heavy lifting for match-type priority).
+ * Matching is a strict, case-insensitive, ORDER-SENSITIVE substring AND: the
+ * query is split into whitespace-separated tokens, and a document matches
+ * only if every token is a literal substring of the combined searchable text
+ * AND the tokens' matches occur in the same left-to-right order as typed.
+ * The "fuzzy" part is purely about distance — any amount of other text is
+ * allowed between two token matches — there is no per-character/typo
+ * tolerance: "lu" must not match "overview", and "gi se pro" must not match
+ * unless "gi", then later "se", then later "pro" each occur intact, in that
+ * order (see the search requirements).
+ *
+ * Tokens can be satisfied by any part of the document because we search one
+ * combined field (name + keywords + path + url) rather than per-key, so a
+ * query like "kub graf" can match a doc where "kub" is only in the path and
+ * "graf" only in the url, as long as "kub" occurs before "graf" in the
+ * concatenated text.
  */
-interface IndexedDocument extends BookmarkDocument {
+interface IndexedDocument {
+  document: BookmarkDocument
   searchable: string
 }
 
-function toIndexed(document: BookmarkDocument): IndexedDocument {
-  const searchable = [document.name, document.name, document.keywords.join(' '), document.path, document.url]
+function toSearchable(document: BookmarkDocument): string {
+  return [document.name, document.keywords.join(' '), document.path, document.url]
     .filter(Boolean)
     .join(' ')
     .toLowerCase()
-  return { ...document, searchable }
-}
-
-const FUSE_OPTIONS: IFuseOptions<IndexedDocument> = {
-  includeScore: true,
-  useExtendedSearch: true,
-  ignoreLocation: true,
-  threshold: 0.4,
-  distance: 300,
-  minMatchCharLength: 2,
-  keys: ['searchable'],
 }
 
 /**
- * Builds a Fuse.js "extended search" query where every whitespace-separated
- * token must match somewhere (AND), while each token stays fuzzy/typo-tolerant.
- * This is what lets "kub graf" find "Kubernetes Grafana Dashboard".
+ * Splits a query into lowercase tokens on runs of whitespace, discarding the
+ * empty strings that consecutive spaces would otherwise produce. "manager
+ * service" and "manager   service" tokenize identically.
  */
-function toExtendedQuery(query: string): string {
-  return query
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .join(' ')
+export function tokenize(query: string): string[] {
+  return query.toLowerCase().split(/\s+/).filter(Boolean)
+}
+
+/**
+ * Checks that every token occurs as a literal substring of `searchable`, in
+ * the same left-to-right order as `tokens`, with any amount of other text
+ * allowed between matches. Each token's own characters must be contiguous —
+ * only the gap *between* tokens is fuzzy.
+ */
+function matchesInOrder(searchable: string, tokens: string[]): boolean {
+  let cursor = 0
+  for (const token of tokens) {
+    const index = searchable.indexOf(token, cursor)
+    if (index === -1) return false
+    cursor = index + token.length
+  }
+  return true
 }
 
 export interface SearchOptions {
@@ -52,17 +61,17 @@ export interface SearchOptions {
 }
 
 export class SearchEngine {
-  private fuse: Fuse<IndexedDocument>
+  private indexed: IndexedDocument[]
   private documents: BookmarkDocument[]
 
   constructor(documents: BookmarkDocument[] = []) {
     this.documents = documents
-    this.fuse = new Fuse(documents.map(toIndexed), FUSE_OPTIONS)
+    this.indexed = documents.map((document) => ({ document, searchable: toSearchable(document) }))
   }
 
   setDocuments(documents: BookmarkDocument[]): void {
     this.documents = documents
-    this.fuse = new Fuse(documents.map(toIndexed), FUSE_OPTIONS)
+    this.indexed = documents.map((document) => ({ document, searchable: toSearchable(document) }))
   }
 
   get size(): number {
@@ -72,23 +81,24 @@ export class SearchEngine {
   search(query: string, options: SearchOptions = {}): SearchResult[] {
     const limit = options.limit ?? 8
     const usage = options.usage ?? {}
-    const trimmed = query.trim()
+    const tokens = tokenize(query)
 
-    if (!trimmed) {
+    if (tokens.length === 0) {
       return this.documents
         .map((document) => ({ document, score: usageOnlyScore(document, usage) }))
         .sort((a, b) => b.score - a.score || a.document.name.localeCompare(b.document.name))
         .slice(0, limit)
     }
 
-    const fuseResults = this.fuse.search(toExtendedQuery(trimmed), { limit: Math.max(limit * 5, 40) })
+    const trimmed = query.trim()
 
-    return fuseResults
-      .map((result) => ({
-        document: result.item,
-        score: rankScore({ document: result.item, fuseScore: result.score, query: trimmed, usage }),
+    return this.indexed
+      .filter(({ searchable }) => matchesInOrder(searchable, tokens))
+      .map(({ document }) => ({
+        document,
+        score: rankScore({ document, fuseScore: undefined, query: trimmed, usage }),
       }))
-      .sort((a, b) => b.score - a.score)
+      .sort((a, b) => b.score - a.score || a.document.name.localeCompare(b.document.name))
       .slice(0, limit)
   }
 }

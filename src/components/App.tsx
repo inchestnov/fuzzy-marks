@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { BookmarkDocument, ScautaSettings, UsageHistory } from '@/types'
 import { DEFAULT_SETTINGS } from '@/types'
-import { SearchEngine } from '@/search'
+import { SearchEngine, tokenize } from '@/search'
 import { getDocuments, openBookmark } from '@/popup/scautaClient'
 import { getSettings, saveSettings, getUsageHistory, clearUsageHistory } from '@/storage'
 import { useTheme } from '@/popup/useTheme'
@@ -75,6 +75,8 @@ export function App() {
       usage: settings.historyEnabled ? usage : {},
     })
   }, [query, searchableDocuments, usage, settings.maxResults, settings.historyEnabled, ready])
+
+  const tokens = useMemo(() => tokenize(query), [query])
 
   useEffect(() => {
     setSelectedIndex(0)
@@ -221,6 +223,7 @@ export function App() {
       />
       <SearchResults
         results={results}
+        tokens={tokens}
         selectedIndex={selectedIndex}
         hasQuery={query.trim().length > 0}
         hasDocuments={searchableDocuments.length > 0}
