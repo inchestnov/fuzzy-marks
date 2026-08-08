@@ -63,7 +63,13 @@ export type ScautaMessage =
   | { type: 'scauta:get-documents' }
   | { type: 'scauta:refresh-index' }
   | { type: 'scauta:record-open'; bookmarkId: string }
-  | { type: 'scauta:open-bookmark'; url: string; bookmarkId: string; newTab?: boolean }
+  | {
+      type: 'scauta:open-bookmark'
+      url: string
+      bookmarkId: string
+      newTab?: boolean
+      reuseExistingTab?: boolean
+    }
 
 export interface GetDocumentsResponse {
   documents: BookmarkDocument[]

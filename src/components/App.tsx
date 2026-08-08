@@ -94,10 +94,10 @@ export function App() {
     (index: number, newTab = false) => {
       const result = results[index]
       if (!result) return
-      void openBookmark(result.document.id, result.document.url, newTab)
+      void openBookmark(result.document.id, result.document.url, newTab, settings.searchTabsEnabled)
       window.close()
     },
-    [results],
+    [results, settings.searchTabsEnabled],
   )
 
   useEffect(() => {

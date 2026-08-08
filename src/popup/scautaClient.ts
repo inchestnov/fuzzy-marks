@@ -12,8 +12,13 @@ export function refreshIndex(): Promise<GetDocumentsResponse> {
   return send<GetDocumentsResponse>({ type: 'scauta:refresh-index' })
 }
 
-export function openBookmark(bookmarkId: string, url: string, newTab = false): Promise<{ ok: true }> {
-  return send<{ ok: true }>({ type: 'scauta:open-bookmark', bookmarkId, url, newTab })
+export function openBookmark(
+  bookmarkId: string,
+  url: string,
+  newTab = false,
+  reuseExistingTab = false,
+): Promise<{ ok: true }> {
+  return send<{ ok: true }>({ type: 'scauta:open-bookmark', bookmarkId, url, newTab, reuseExistingTab })
 }
 
 export function faviconUrl(pageUrl: string, size = 32): string {

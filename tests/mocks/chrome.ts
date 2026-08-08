@@ -7,6 +7,7 @@ interface MockTab {
   url: string
   title?: string
   windowId: number
+  active?: boolean
 }
 
 interface MockHistoryItem {
@@ -53,7 +54,7 @@ export interface ChromeMock {
     sendMessage: Mock<any[], unknown>
   }
   tabs: {
-    query: Mock<[{ url?: string }?], Promise<MockTab[]>>
+    query: Mock<[{ url?: string; active?: boolean; lastFocusedWindow?: boolean }?], Promise<MockTab[]>>
     create: Mock<[{ url: string }], Promise<MockTab>>
     update: Mock<any[], Promise<undefined>>
     __tabs: MockTab[]
@@ -120,8 +121,13 @@ export function installChromeMock(): ChromeMock {
     },
     tabs: {
       __tabs: [],
-      query: vi.fn(async ({ url }: { url?: string } = {}) =>
-        url === undefined ? mock.tabs.__tabs : mock.tabs.__tabs.filter((t) => t.url === url),
+      query: vi.fn(
+        async ({ url, active }: { url?: string; active?: boolean; lastFocusedWindow?: boolean } = {}) => {
+          let result = mock.tabs.__tabs
+          if (url !== undefined) result = result.filter((t) => t.url === url)
+          if (active !== undefined) result = result.filter((t) => Boolean(t.active) === active)
+          return result
+        },
       ),
       create: vi.fn(async ({ url }: { url: string }) => {
         const tab = { id: tabId++, url, windowId: 1 }

@@ -189,52 +189,104 @@ describe('background service worker integration', () => {
     expect(response.historyDocuments.map((d) => d.id).sort()).toEqual(['history:10', 'history:11'])
   })
 
-  it('creates a new tab on scauta:open-bookmark for a fresh URL, and records usage history', async () => {
+  it('navigates the current tab on a plain Enter for a fresh URL, and records usage history', async () => {
     const mock = await loadBackground()
     mock.bookmarks.__setTree(sampleTree())
+    mock.tabs.__setTabs([{ id: 99, url: 'https://old.example', windowId: 1, active: true }])
     mock.runtime.onInstalled.__emit()
     await flushAsync()
 
     const listener = getMessageListener(mock)
 
     const response = await new Promise((resolve) => {
-      listener({ type: 'scauta:open-bookmark', url: 'https://grafana.company.com', bookmarkId: '3' }, {}, resolve)
+      listener(
+        { type: 'scauta:open-bookmark', url: 'https://grafana.company.com', bookmarkId: '3', reuseExistingTab: false },
+        {},
+        resolve,
+      )
     })
 
     expect(response).toEqual({ ok: true })
-    expect(mock.tabs.create).toHaveBeenCalledTimes(1)
-    expect(mock.tabs.create).toHaveBeenCalledWith({ url: 'https://grafana.company.com' })
-    expect(mock.tabs.update).not.toHaveBeenCalled()
+    // Enter reuses the tab the user was looking at rather than spawning a new one.
+    expect(mock.tabs.update).toHaveBeenCalledTimes(1)
+    expect(mock.tabs.update).toHaveBeenCalledWith(99, { url: 'https://grafana.company.com' })
+    expect(mock.tabs.create).not.toHaveBeenCalled()
 
     const usage = mock.storage.local.__store['scauta:usage'] as Record<string, { count: number; lastUsedAt: number }>
     expect(usage['3'].count).toBe(1)
     expect(usage['3'].lastUsedAt).toBeGreaterThan(0)
   })
 
-  it('focuses the existing tab (via tabs.update) instead of creating a duplicate on a second open', async () => {
+  it('creates a new tab on Ctrl/Cmd+Enter (newTab) regardless of the active tab', async () => {
     const mock = await loadBackground()
     mock.bookmarks.__setTree(sampleTree())
+    mock.tabs.__setTabs([{ id: 99, url: 'https://old.example', windowId: 1, active: true }])
     mock.runtime.onInstalled.__emit()
     await flushAsync()
 
     const listener = getMessageListener(mock)
+
+    await new Promise((resolve) => {
+      listener(
+        { type: 'scauta:open-bookmark', url: 'https://grafana.company.com', bookmarkId: '3', newTab: true },
+        {},
+        resolve,
+      )
+    })
+
+    expect(mock.tabs.create).toHaveBeenCalledTimes(1)
+    expect(mock.tabs.create).toHaveBeenCalledWith({ url: 'https://grafana.company.com' })
+    expect(mock.tabs.update).not.toHaveBeenCalled()
+  })
+
+  it('focuses an already-open tab when reuseExistingTab is set (Open tabs source enabled)', async () => {
+    const mock = await loadBackground()
+    mock.bookmarks.__setTree(sampleTree())
     const url = 'https://grafana.company.com'
+    mock.tabs.__setTabs([
+      { id: 42, url, windowId: 7 },
+      { id: 99, url: 'https://old.example', windowId: 1, active: true },
+    ])
+    mock.runtime.onInstalled.__emit()
+    await flushAsync()
+
+    const listener = getMessageListener(mock)
 
     await new Promise((resolve) => {
-      listener({ type: 'scauta:open-bookmark', url, bookmarkId: '3' }, {}, resolve)
-    })
-    expect(mock.tabs.create).toHaveBeenCalledTimes(1)
-
-    await new Promise((resolve) => {
-      listener({ type: 'scauta:open-bookmark', url, bookmarkId: '3' }, {}, resolve)
+      listener({ type: 'scauta:open-bookmark', url, bookmarkId: '3', reuseExistingTab: true }, {}, resolve)
     })
 
-    // Still only ever created once; the second open should reuse/focus instead.
-    expect(mock.tabs.create).toHaveBeenCalledTimes(1)
+    // Switches to the existing tab and focuses its window; never navigates the
+    // active tab or creates a new one.
     expect(mock.tabs.update).toHaveBeenCalledTimes(1)
-    expect(mock.windows.update).toHaveBeenCalledTimes(1)
+    expect(mock.tabs.update).toHaveBeenCalledWith(42, { active: true })
+    expect(mock.windows.update).toHaveBeenCalledWith(7, { focused: true })
+    expect(mock.tabs.create).not.toHaveBeenCalled()
 
     const usage = mock.storage.local.__store['scauta:usage'] as Record<string, { count: number; lastUsedAt: number }>
-    expect(usage['3'].count).toBe(2)
+    expect(usage['3'].count).toBe(1)
+  })
+
+  it('navigates the current tab when reuseExistingTab is set but no matching tab is open', async () => {
+    const mock = await loadBackground()
+    mock.bookmarks.__setTree(sampleTree())
+    mock.tabs.__setTabs([{ id: 99, url: 'https://old.example', windowId: 1, active: true }])
+    mock.runtime.onInstalled.__emit()
+    await flushAsync()
+
+    const listener = getMessageListener(mock)
+
+    await new Promise((resolve) => {
+      listener(
+        { type: 'scauta:open-bookmark', url: 'https://grafana.company.com', bookmarkId: '3', reuseExistingTab: true },
+        {},
+        resolve,
+      )
+    })
+
+    expect(mock.tabs.update).toHaveBeenCalledTimes(1)
+    expect(mock.tabs.update).toHaveBeenCalledWith(99, { url: 'https://grafana.company.com' })
+    expect(mock.tabs.create).not.toHaveBeenCalled()
+    expect(mock.windows.update).not.toHaveBeenCalled()
   })
 })

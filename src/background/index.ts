@@ -101,10 +101,26 @@ for (const event of [chrome.history.onVisited, chrome.history.onVisitRemoved]) {
   event.addListener(() => historyIndex.scheduleRebuild())
 }
 
-async function openBookmarkTab(url: string, forceNewTab: boolean): Promise<void> {
-  if (!forceNewTab) {
-    const existing = await chrome.tabs.query({ url })
-    const [match] = existing
+interface OpenBookmarkOptions {
+  /** Ctrl/Cmd+Enter — always spawn a new tab. */
+  forceNewTab: boolean
+  /**
+   * Only meaningful for a plain Enter. When the "Open tabs" search source is
+   * enabled, an already-open tab for this URL should be focused rather than
+   * navigated into. When it's disabled we skip that lookup entirely and just
+   * navigate the current tab.
+   */
+  reuseExistingTab: boolean
+}
+
+async function openBookmarkTab(url: string, { forceNewTab, reuseExistingTab }: OpenBookmarkOptions): Promise<void> {
+  if (forceNewTab) {
+    await chrome.tabs.create({ url })
+    return
+  }
+
+  if (reuseExistingTab) {
+    const [match] = await chrome.tabs.query({ url })
     if (match?.id !== undefined) {
       await chrome.tabs.update(match.id, { active: true })
       if (match.windowId !== undefined) {
@@ -113,7 +129,16 @@ async function openBookmarkTab(url: string, forceNewTab: boolean): Promise<void>
       return
     }
   }
-  await chrome.tabs.create({ url })
+
+  // Plain Enter: navigate the tab the user was looking at behind the popup
+  // instead of opening a new one. Fall back to creating a tab only if there is
+  // somehow no active tab to reuse.
+  const [active] = await chrome.tabs.query({ active: true, lastFocusedWindow: true })
+  if (active?.id !== undefined) {
+    await chrome.tabs.update(active.id, { url })
+  } else {
+    await chrome.tabs.create({ url })
+  }
 }
 
 const EMPTY_DOCUMENTS_RESPONSE: GetDocumentsResponse = {
@@ -156,7 +181,10 @@ chrome.runtime.onMessage.addListener((message: ScautaMessage, _sender, sendRespo
     case 'scauta:open-bookmark': {
       void Promise.all([
         recordBookmarkOpen(message.bookmarkId),
-        openBookmarkTab(message.url, message.newTab ?? false),
+        openBookmarkTab(message.url, {
+          forceNewTab: message.newTab ?? false,
+          reuseExistingTab: message.reuseExistingTab ?? false,
+        }),
       ])
         .catch(() => undefined)
         .then(() => sendResponse({ ok: true }))
